@@ -1,0 +1,17 @@
+{
+  "name": "Smoke",
+  "guid": "odinshand.smoke.harness",
+  "reportName": "smoke",
+  "logTag": "Smoke Harness (dev)",
+  "solution": "OdinsHand.sln",
+  "plugins": [
+    "examples/Smoke.Harness/bin/Release/Smoke.Harness.dll",
+    "src/OdinsHand/bin/Release/OdinsHand.dll"
+  ],
+  "audit": [
+    "examples/Smoke.Harness/bin/Release/Smoke.Harness.dll",
+    "src/OdinsHand/bin/Release/OdinsHand.dll"
+  ],
+  "character": "OdinsTester",
+  "world": "OdinsHandTest"
+}

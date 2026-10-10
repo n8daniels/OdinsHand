@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The smallest useful harness plugin: it needs no mod at all, so it proves your setup (BepInEx profile, auto-start,
+    a live world, screenshots) works before you write a single case. Copy this folder, rename it, add your mod as a
+    ProjectReference / Reference, and replace SmokeCases with your own.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>Smoke.Harness</AssemblyName>
+    <RootNamespace>Smoke.Harness</RootNamespace>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <Import Project="..\..\build\GameReferences.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OdinsHand\OdinsHand.csproj"><Private>true</Private></ProjectReference>
+    <!-- Your mod goes here, e.g.  <ProjectReference Include="..\..\..\MyMod\src\MyMod\MyMod.csproj"><Private>false</Private></ProjectReference> -->
+  </ItemGroup>
+</Project>
