@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+* `Kit.WaitForPlayerReady` also waits out `Player.InIntro()` (the valkyrie flight of a new character, which is not `InCutscene`).
+* `Deploy-Dev.ps1` retries a failed build on a single node: Jotunn 2.30 projects race on publicizing the same game DLL.
+
 ## 0.2.1
 
 Distribution release: it can now be adopted by someone other than the author.

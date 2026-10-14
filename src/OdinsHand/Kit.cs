@@ -24,7 +24,7 @@ namespace OdinsHand
 
         /// <summary>
         /// Waits until a local player exists and its intro cutscene (played by a brand-new character over a perfectly
-        /// valid spawn) is over, then a short settle time. Yield this before running any case.
+        /// valid spawn - the cutscene, and the valkyrie flight, which is InIntro and not InCutscene) is over, then a short settle time. Yield this before running any case.
         ///
         /// It first waits <paramref name="startDelaySeconds"/>: the spawn callback fires before the intro cutscene has begun,
         /// so polling immediately sees "no cutscene" and declares the player ready a moment before the cutscene starts.
@@ -37,7 +37,7 @@ namespace OdinsHand
             while (Time.realtimeSinceStartup < deadline)
             {
                 var player = Player.m_localPlayer;
-                if (player != null && !player.InCutscene()) break;
+                if (player != null && !player.InCutscene() && !player.InIntro()) break;
                 yield return new WaitForSeconds(0.5f);
             }
             yield return new WaitForSeconds(settleSeconds);
