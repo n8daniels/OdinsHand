@@ -15,19 +15,7 @@ $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\_Config.ps1"
 $p = Get-OdinsConfig $Project
 
-if (-not $CoreSource) {
-  $cache = Join-Path $env:LOCALAPPDATA "OdinsHand\bepinex-$BepInExVersion"
-  $CoreSource = Join-Path $cache "BepInEx\core"
-  if (-not (Test-Path "$CoreSource\BepInEx.Preloader.dll")) {
-    $zip = Join-Path $env:TEMP "BepInEx_win_x64_$BepInExVersion.zip"
-    $url = "https://github.com/BepInEx/BepInEx/releases/download/v$BepInExVersion/BepInEx_win_x64_$BepInExVersion.zip"
-    Write-Host "Downloading BepInEx $BepInExVersion ..."
-    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
-    New-Item -ItemType Directory -Force $cache | Out-Null
-    Expand-Archive -Path $zip -DestinationPath $cache -Force
-    Remove-Item $zip -Force
-  }
-}
+if (-not $CoreSource) { $CoreSource = Get-BepInExCore $BepInExVersion }
 if (-not (Test-Path "$CoreSource\BepInEx.Preloader.dll")) { throw "No BepInEx core at '$CoreSource' (expected BepInEx.Preloader.dll)." }
 
 $bep = Join-Path $p.ProfileDir "BepInEx"

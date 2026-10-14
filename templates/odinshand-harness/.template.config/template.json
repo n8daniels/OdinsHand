@@ -20,7 +20,7 @@
     "odinsHandVersion": {
       "type": "parameter",
       "datatype": "text",
-      "defaultValue": "0.2.1",
+      "defaultValue": "0.3.0",
       "replaces": "ODINSHAND_VERSION",
       "description": "Version of the OdinsHand NuGet package to reference."
     }

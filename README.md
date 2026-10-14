@@ -112,6 +112,23 @@ Prefer subclassing? `HarnessCase` and `HarnessRunner.Add(...)` still work; overr
 * **Fails a run that executed nothing**, so a filter typo cannot look like success.
 * Refuses to run against the wrong character, or an unintended server.
 
+## Multiplayer: a dedicated server
+
+`odins.ps1 server` (`scripts\Run-ServerHarness.ps1`) runs your cases from one client against a real local dedicated server, which catches the bugs that only
+show when values come from a server. One-time setup: install the dedicated server with steamcmd (app 896660) so that `<server root>\server\valheim_server.exe`
+exists, then add a `server` section to `odinshand.json`:
+
+```json
+"server": {
+  "root": "D:\\ValheimDedicated",      // or set VALHEIM_SERVER_ROOT
+  "plugins": [ "src/MyMod/bin/Release/MyMod.dll" ],                     // the mod, NOT the harness
+  "configFiles": { "com.me.mymod.cfg": "dev/server-config/com.me.mymod.cfg" }   // server config that differs from the client defaults
+}
+```
+
+It builds a separate server profile, starts the server, waits for it, joins with the harness, then stops it and scans the server's own logs for errors.
+A second human player is not required, but anything that needs two people to observe each other stays manual.
+
 ## Telemetry: where things happened
 
 Every run records where the player was, so a failure that only happens in one biome, or far from the origin, is visible in the report

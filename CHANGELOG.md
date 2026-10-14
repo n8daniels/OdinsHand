@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
+
+* **Dedicated-server runs.** `Run-ServerHarness.ps1` / `odins.ps1 server` starts a local dedicated server (your mod, with server config that can differ from the client's), joins it with the harness, runs the cases, stops the server and scans ITS logs for errors. `New-ServerProfile.ps1` builds the server profile. Configured by a `server` section in `odinshand.json`. Generalised from BubbleBabies' scripts.
+* **The no-map setting is recorded** in each report (`telemetry.noMap`), so a run on a no-map server explains why map-driven cases could not run.
+* **The compiled library no longer embeds the build machine's path** (it recorded the full `.pdb` path, including the Windows user name). Fixed with a path map.
 
 * **Run history, kept small.** After each `run` the report and game log are saved as one zip (a few KB) under `%LOCALAPPDATA%\OdinsHand\runs\<project>`; only the newest `keepRuns` (default 5) are kept. Screenshots are not kept.
 * **Bug-report bundle.** `New-BugReport.ps1` / `odins.ps1 bundle` zips the latest run for a GitHub issue, with usernames, paths, Steam ids, e-mail addresses and server addresses/passwords redacted. Nothing is uploaded. Only the newest 3 bundles are kept.

@@ -23,7 +23,12 @@ function Save-RunHistory([string]$Name, [string]$ReportDir, [string]$LogPath, [i
     if (-not (Get-ChildItem $stage)) { return $null }
     $tag = "run"
     $rj = Join-Path $stage "report.json"
-    if (Test-Path $rj) { try { $r = Get-Content $rj -Raw | ConvertFrom-Json; $tag = "{0}pass-{1}fail" -f $r.passed, ($r.failed + $r.errors) } catch { } }
+    if (Test-Path $rj) { try {
+      $r = Get-Content $rj -Raw | ConvertFrom-Json
+      if ($null -eq $r.passed) { $res = @($r.results); $pass = @($res | Where-Object { $_.outcome -eq "PASS" }).Count; $fail = @($res | Where-Object { $_.outcome -in "FAIL", "ERROR" }).Count }
+      else { $pass = $r.passed; $fail = $r.failed + $r.errors }
+      $tag = "{0}pass-{1}fail" -f $pass, $fail
+    } catch { } }
     $zip = Join-Path $dir ((Get-Date -Format "yyyyMMdd-HHmmss") + "_" + $tag + ".zip")
     Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -Force
     [void](Remove-OldFiles $dir "*.zip" $Keep)

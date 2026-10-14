@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageType>Template</PackageType>
     <PackageId>OdinsHand.Templates</PackageId>
-    <Version>0.2.1</Version>
+    <Version>0.3.0</Version>
     <Title>Odin's Hand harness template</Title>
     <Authors>n8daniels</Authors>
     <Description>dotnet new template that adds an Odin's Hand in-game test harness plugin to a Valheim (BepInEx) mod.</Description>

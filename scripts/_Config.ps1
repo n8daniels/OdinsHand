@@ -20,3 +20,40 @@ function Get-OdinsConfig([string]$Project) {
     ReportDir  = Join-Path $env:TEMP ($c.reportName + "-harness")
   }
 }
+
+
+# BepInEx 5 "core" folder: downloaded once from the official GitHub release and cached under %LOCALAPPDATA%\OdinsHand.
+function Get-BepInExCore([string]$Version = "5.4.23.2") {
+  $cache = Join-Path $env:LOCALAPPDATA "OdinsHand\bepinex-$Version"
+  $core = Join-Path $cache "BepInEx\core"
+  if (-not (Test-Path "$core\BepInEx.Preloader.dll")) {
+    $zip = Join-Path $env:TEMP "BepInEx_win_x64_$Version.zip"
+    $url = "https://github.com/BepInEx/BepInEx/releases/download/v$Version/BepInEx_win_x64_$Version.zip"
+    Write-Host "Downloading BepInEx $Version ..."
+    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+    New-Item -ItemType Directory -Force $cache | Out-Null
+    Expand-Archive -Path $zip -DestinationPath $cache -Force
+    Remove-Item $zip -Force
+  }
+  return $core
+}
+
+# The optional "server" section of odinshand.json, with defaults, for the dedicated-server scripts.
+function Get-OdinsServerConfig($p) {
+  $c = $p.Cfg.server
+  $root = if ($c -and $c.root) { $c.root } elseif ($env:VALHEIM_SERVER_ROOT) { $env:VALHEIM_SERVER_ROOT } else { $null }
+  if (-not $root) { throw "No dedicated server location. Set server.root in odinshand.json or the VALHEIM_SERVER_ROOT environment variable (see New-ServerProfile.ps1)." }
+  $files = [ordered]@{}
+  if ($c -and $c.configFiles) { foreach ($prop in $c.configFiles.PSObject.Properties) { $files[$prop.Name] = $prop.Value } }
+  return [pscustomobject]@{
+    Root        = $root
+    Exe         = Join-Path $root "server\valheim_server.exe"
+    ProfileDir  = Join-Path $root ($p.Name + "ServerProfile")
+    Name        = if ($c -and $c.name) { $c.name } else { "$($p.Name)-Test" }
+    World       = if ($c -and $c.world) { $c.world } else { "$($p.Name)Server" }
+    Port        = if ($c -and $c.port) { [int]$c.port } else { 2456 }
+    Password    = if ($c -and $c.password) { $c.password } else { "harnesspw1" }
+    Plugins     = if ($c -and $c.plugins) { @($c.plugins) } else { @() }
+    ConfigFiles = $files
+  }
+}

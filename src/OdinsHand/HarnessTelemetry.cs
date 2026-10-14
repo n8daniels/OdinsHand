@@ -191,6 +191,8 @@ namespace OdinsHand
         public readonly List<string> Plugins = new List<string>();
         public long Seed;
         public int Day;
+        /// <summary>True when the game's no-map setting is on (world setting or this character): the map cannot be opened, so map-driven cases cannot run.</summary>
+        public bool NoMap;
 
         public LocationSnapshot RunStart, RunEnd;
         public readonly List<CaseTelemetry> Cases = new List<CaseTelemetry>();
@@ -203,6 +205,7 @@ namespace OdinsHand
             try { Seed = ZNet.World != null ? ZNet.World.m_seed : 0; } catch { }
             try { GameVersion = Version.GetVersionString(); } catch { }
             try { Day = EnvMan.instance != null ? EnvMan.instance.GetCurrentDay() : 0; } catch { }
+            try { NoMap = Game.m_noMap; } catch { }
             try { OdinsHandVersion = typeof(HarnessTelemetry).Assembly.GetName().Version.ToString(3); } catch { }
             try { BepInExVersion = typeof(BepInEx.BaseUnityPlugin).Assembly.GetName().Version.ToString(); } catch { }
             try
@@ -218,7 +221,7 @@ namespace OdinsHand
         /// <summary>Human-readable lines for the log and the text report.</summary>
         public IEnumerable<string> Describe()
         {
-            yield return $"character '{Character}' in world '{World}' (seed {Seed}), game {GameVersion}, day {Day}";
+            yield return $"character '{Character}' in world '{World}' (seed {Seed}), game {GameVersion}, day {Day}{(NoMap ? ", NO-MAP setting is on (the map cannot be opened)" : "")}";
             yield return $"Odin's Hand {OdinsHandVersion}, BepInEx {BepInExVersion}, {Plugins.Count} plugin(s): {string.Join(", ", Plugins.ToArray())}";
             for (var i = 0; i < SpawnList.Count; i++)
             {
@@ -242,6 +245,7 @@ namespace OdinsHand
              .Append(",\"seed\":").Append(Seed.ToString(CultureInfo.InvariantCulture))
              .Append(",\"gameVersion\":").Append(HarnessReport.Quote(GameVersion))
              .Append(",\"day\":").Append(Day)
+             .Append(",\"noMap\":").Append(NoMap ? "true" : "false")
              .Append(",\"odinsHandVersion\":").Append(HarnessReport.Quote(OdinsHandVersion))
              .Append(",\"bepInExVersion\":").Append(HarnessReport.Quote(BepInExVersion));
             b.Append(",\"plugins\":[");
