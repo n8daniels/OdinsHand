@@ -47,7 +47,8 @@ finally {
 Write-Host ""
 Write-Host "== Server-side log check ==" -ForegroundColor Cyan
 if (Test-Path $serverBepLog) {
-  $bad = Get-Content $serverBepLog | Select-String "\[Error|Exception"
+  # "Unable to start Unity log writer" is a harmless BepInEx start-up message, not a problem with the mod.
+  $bad = Get-Content $serverBepLog | Select-String "\[Error|Exception" | Where-Object { $_.Line -notmatch "Unable to start Unity log writer" }
   if ($bad) { Write-Warning "Server BepInEx log has errors:"; $bad | Select-Object -First 15 | ForEach-Object { $_.Line } } else { Write-Host "No errors or exceptions in the server's BepInEx log." -ForegroundColor Green }
 }
 if (Test-Path $serverLog) {

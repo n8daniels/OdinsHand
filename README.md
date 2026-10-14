@@ -139,6 +139,8 @@ and not lost. This matters most for mods with random spawn points.
 * Spawns and the run start/end also carry `nearestBiomes`: for each other biome, the distance in metres, compass bearing and exact point of the
   nearest sample (`BlackForest 504 m NE`). It looks out to 3,000 m, so a biome further away is not listed, and a biome narrower than
   the gap between 32 search rays can be missed. `BiomeSearch.FindNearest(position)` does the same for any point.
+* "Spawn" is where the game placed the player when it spawned. For a brand-new character that is the start of the valkyrie intro flight, which is why
+  `runStart` (taken after the intro, once the player has landed) is usually the position to look at.
 * `report.txt` and the log end with the same facts in words, for example `spawn #1: (-4.3, 76.8, 6.6) Meadows, zone 0,0`.
 * In a case: `HarnessTelemetry.LastSpawn` is the most recent spawn and `LocationSnapshot.Capture()` is the player right now, so a case can
   assert things like "the player is still within 500 m of where it spawned".

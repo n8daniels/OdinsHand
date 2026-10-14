@@ -92,6 +92,13 @@ namespace OdinsHand
         public string Biome;
         public int ZoneX, ZoneY;
         public float Fps;
+        /// <summary>Conditions that move numbers around without any code being wrong: weather, how far through the day, the active
+        /// status effects (Wet, Cold, Rested...), and the Run skill, which rises as the test character runs. For telling a flaky
+        /// check from a real one.</summary>
+        public string Weather;
+        public float DayFraction = -1f;
+        public float RunSkill = -1f;
+        public List<string> Effects = new List<string>();
         public double Seconds;   // real seconds since the game started, so snapshots can be ordered and timed
 
         /// <summary>Nearest sample of each other biome (nearest first). Empty unless captured with biomes.</summary>
@@ -120,6 +127,10 @@ namespace OdinsHand
                     Fps = Time.unscaledDeltaTime > 0f ? 1f / Time.unscaledDeltaTime : 0f,
                     Seconds = Time.realtimeSinceStartup,
                 };
+                try { snapshot.Weather = EnvMan.instance != null ? EnvMan.instance.GetCurrentEnvironment().m_name : null; } catch { }
+                try { snapshot.DayFraction = EnvMan.instance != null ? EnvMan.instance.GetDayFraction() : -1f; } catch { }
+                try { snapshot.RunSkill = player.GetSkills().GetSkillLevel(Skills.SkillType.Run); } catch { }
+                try { foreach (var e in player.GetSEMan().GetStatusEffects()) snapshot.Effects.Add(e.name); } catch { }
                 if (biomes) snapshot.OtherBiomes = BiomeSearch.FindNearest(p);
                 return snapshot;
             }
@@ -138,6 +149,10 @@ namespace OdinsHand
              .Append(",\"biome\":").Append(HarnessReport.Quote(Biome))
              .Append(",\"zoneX\":").Append(ZoneX).Append(",\"zoneY\":").Append(ZoneY)
              .Append(",\"fps\":").Append(F(Fps)).Append(",\"t\":").Append(F((float)Seconds));
+            b.Append(",\"weather\":").Append(HarnessReport.Quote(Weather)).Append(",\"dayFraction\":").Append(F(DayFraction)).Append(",\"runSkill\":").Append(F(RunSkill));
+            b.Append(",\"effects\":[");
+            for (var i = 0; i < Effects.Count; i++) { if (i > 0) b.Append(','); b.Append(HarnessReport.Quote(Effects[i])); }
+            b.Append(']');
             b.Append(",\"nearestBiomes\":{");
             for (var i = 0; i < OtherBiomes.Count; i++)
             {
@@ -218,6 +233,9 @@ namespace OdinsHand
             catch { }
         }
 
+        private static string Ambient(LocationSnapshot l) =>
+            $" | {l.Weather}, day fraction {l.DayFraction:0.00}, Run skill {l.RunSkill:0.0}, effects: {(l.Effects.Count == 0 ? "none" : string.Join(",", l.Effects.ToArray()))}";
+
         /// <summary>Human-readable lines for the log and the text report.</summary>
         public IEnumerable<string> Describe()
         {
@@ -229,10 +247,10 @@ namespace OdinsHand
                 if (SpawnList[i].OtherBiomes.Count > 0)
                     yield return "  nearest other biomes: " + string.Join(", ", SpawnList[i].OtherBiomes.ConvertAll(b => b.ToString()).ToArray());
             }
-            if (RunStart != null) yield return "run started at: " + RunStart;
+            if (RunStart != null) yield return "run started at: " + RunStart + Ambient(RunStart);
             if (RunEnd != null)
             {
-                yield return "run ended at:   " + RunEnd;
+                yield return "run ended at:   " + RunEnd + Ambient(RunEnd);
                 if (RunEnd.OtherBiomes.Count > 0)
                     yield return "  nearest other biomes: " + string.Join(", ", RunEnd.OtherBiomes.ConvertAll(b => b.ToString()).ToArray());
             }

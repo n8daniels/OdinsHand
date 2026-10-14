@@ -33,11 +33,17 @@ namespace OdinsHand
         {
             if (startDelaySeconds > 0f) yield return new WaitForSeconds(startDelaySeconds);
 
+            // Ready means: no cutscene, no valkyrie intro, AND the player has actually landed (on the ground or in water) and stayed
+            // there for a second. The last part matters when joining a server: the world loads slower, the valkyrie intro starts later
+            // than the 3 s above, and "no intro right now" was true a moment before the flight began - the suite then ran in mid-air.
             var deadline = Time.realtimeSinceStartup + timeoutSeconds;
+            var steady = 0;
             while (Time.realtimeSinceStartup < deadline)
             {
                 var player = Player.m_localPlayer;
-                if (player != null && !player.InCutscene() && !player.InIntro()) break;
+                var landed = player != null && !player.InCutscene() && !player.InIntro() && (player.IsOnGround() || player.IsSwimming());
+                steady = landed ? steady + 1 : 0;
+                if (steady >= 2) break;            // two checks, half a second apart
                 yield return new WaitForSeconds(0.5f);
             }
             yield return new WaitForSeconds(settleSeconds);
