@@ -37,7 +37,7 @@ namespace OdinsHand
         /// forever for something that will never happen would otherwise hold the whole run until the outer timeout.
         /// 0 disables it.
         /// </summary>
-        public float CaseTimeoutSeconds { get; set; } = 120f;
+        public float CaseTimeoutSeconds { get; set; } = 300f;
 
         public HarnessRunner(string name, Action<string> log)
         {
@@ -194,13 +194,14 @@ namespace OdinsHand
 
             if (routine == null) yield break;
 
+            var limit = testCase.TimeoutSeconds > 0f ? testCase.TimeoutSeconds : CaseTimeoutSeconds;
             var started = UnityEngine.Time.realtimeSinceStartup;
             while (true)
             {
-                if (CaseTimeoutSeconds > 0f && UnityEngine.Time.realtimeSinceStartup - started > CaseTimeoutSeconds)
+                if (limit > 0f && UnityEngine.Time.realtimeSinceStartup - started > limit)
                 {
                     context.Error("running the case", new TimeoutException(
-                        $"exceeded {CaseTimeoutSeconds:0}s and was abandoned. Game state then: {GameState.Describe()}"));
+                        $"exceeded {limit:0}s and was abandoned. Game state then: {GameState.Describe()}"));
                     yield break;
                 }
 

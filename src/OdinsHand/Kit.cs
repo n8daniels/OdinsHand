@@ -25,9 +25,14 @@ namespace OdinsHand
         /// <summary>
         /// Waits until a local player exists and its intro cutscene (played by a brand-new character over a perfectly
         /// valid spawn) is over, then a short settle time. Yield this before running any case.
+        ///
+        /// It first waits <paramref name="startDelaySeconds"/>: the spawn callback fires before the intro cutscene has begun,
+        /// so polling immediately sees "no cutscene" and declares the player ready a moment before the cutscene starts.
         /// </summary>
-        public static IEnumerator WaitForPlayerReady(float timeoutSeconds = 60f, float settleSeconds = 2f)
+        public static IEnumerator WaitForPlayerReady(float timeoutSeconds = 60f, float settleSeconds = 2f, float startDelaySeconds = 3f)
         {
+            if (startDelaySeconds > 0f) yield return new WaitForSeconds(startDelaySeconds);
+
             var deadline = Time.realtimeSinceStartup + timeoutSeconds;
             while (Time.realtimeSinceStartup < deadline)
             {

@@ -50,7 +50,7 @@ namespace OdinsHand
 
                     found.Add(new MethodCase(
                         caseAttr.Name ?? type.Name + "." + method.Name, category, instance, method,
-                        before, after, skip?.Reason, only, noPlayer));
+                        before, after, skip?.Reason, only, noPlayer, caseAttr.TimeoutSeconds));
                 }
             }
 
@@ -94,15 +94,16 @@ namespace OdinsHand
             private readonly bool _noPlayer;
 
             public MethodCase(string name, string category, object target, MethodInfo method,
-                List<MethodInfo> before, List<MethodInfo> after, string skip, bool only, bool noPlayer)
+                List<MethodInfo> before, List<MethodInfo> after, string skip, bool only, bool noPlayer, float timeout)
             {
                 Name = name; Category = category; _target = target; _method = method;
-                _before = before; _after = after; _skip = skip; IsOnly = only; _noPlayer = noPlayer;
+                _before = before; _after = after; _skip = skip; IsOnly = only; _noPlayer = noPlayer; TimeoutSeconds = timeout;
             }
 
             public override string Name { get; }
             public override string Category { get; }
             public bool IsOnly { get; }
+            public override float TimeoutSeconds { get; }
 
             public override bool CanRun(HarnessContext context) =>
                 _skip == null && (_noPlayer || Player.m_localPlayer != null);

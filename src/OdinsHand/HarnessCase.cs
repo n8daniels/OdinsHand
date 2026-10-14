@@ -26,6 +26,12 @@ namespace OdinsHand
         /// <summary>Reason shown in the report when <see cref="CanRun"/> is false.</summary>
         public virtual string SkipReason => "preconditions not met";
 
+        /// <summary>
+        /// Longest this case may run, in seconds, before the runner abandons it and records a timeout error. 0 (the default)
+        /// uses <see cref="HarnessRunner.CaseTimeoutSeconds"/>. Override for cases that are slow on purpose.
+        /// </summary>
+        public virtual float TimeoutSeconds => 0f;
+
         public abstract IEnumerator Run(HarnessContext context);
 
         /// <summary>

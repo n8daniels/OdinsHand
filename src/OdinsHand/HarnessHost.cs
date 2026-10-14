@@ -47,16 +47,18 @@ namespace OdinsHand
         /// <summary>Set to false to scan for attribute cases yourself instead.</summary>
         protected virtual bool DiscoverCasesAutomatically => true;
 
-        internal static HarnessHost Current { get; private set; }
+        internal string CommandName => ReportName;
 
-        protected ConfigEntry<bool> RunOnSpawn { get; private set; }
-        protected ConfigEntry<string> OnlyCases { get; private set; }
-        protected ConfigEntry<bool> CaptureScreenshots { get; private set; }
-        protected ConfigEntry<string> Character { get; private set; }
-        protected ConfigEntry<string> World { get; private set; }
-        protected ConfigEntry<string> Server { get; private set; }
-        protected ConfigEntry<string> ServerPassword { get; private set; }
-        protected ConfigEntry<bool> QuitWhenDone { get; private set; }
+        public static HarnessHost Current { get; private set; }
+
+        public ConfigEntry<bool> RunOnSpawn { get; private set; }
+        public ConfigEntry<string> OnlyCases { get; private set; }
+        public ConfigEntry<bool> CaptureScreenshots { get; private set; }
+        public ConfigEntry<string> Character { get; private set; }
+        public ConfigEntry<string> World { get; private set; }
+        public ConfigEntry<string> Server { get; private set; }
+        public ConfigEntry<string> ServerPassword { get; private set; }
+        public ConfigEntry<bool> QuitWhenDone { get; private set; }
 
         private Harmony _harmony;
         private bool _started;
@@ -200,7 +202,7 @@ namespace OdinsHand
 
             var host = HarnessHost.Current;
             var name = host.Info.Metadata.Name;
-            var command = host.Info.Metadata.GUID.Split('.').Length > 1 ? host.Info.Metadata.GUID : name;
+            var command = host.CommandName;
 
             // Vanilla's own ConsoleCommand rather than a mod framework's, so the harness never introduces a dependency.
             // Not a cheat command: vanilla asks cheat commands to confirm first, and a prompt is the one thing an

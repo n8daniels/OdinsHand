@@ -23,6 +23,9 @@ namespace OdinsHand
         /// <summary>Case name for the report and for <c>-Only</c>. Defaults to <c>Class.Method</c>.</summary>
         public string Name { get; }
 
+        /// <summary>Per-case time limit in seconds; 0 = the runner's default. For cases that are slow on purpose.</summary>
+        public float TimeoutSeconds { get; set; }
+
         public CaseAttribute(string name = null) { Name = name; }
     }
 
