@@ -75,4 +75,13 @@ else {
 Write-Host ""
 Write-Host "Report:      $($p.ReportDir)\report.json"
 Write-Host "Screenshots: $($p.ReportDir)"
+
+# Keep a small history: this run's report and log as one zip, pruned to the newest few ("keepRuns" in odinshand.json, default 5).
+# Never allowed to fail the run.
+try {
+  . "$PSScriptRoot\_History.ps1"
+  $keepRuns = if ($p.Cfg.keepRuns) { [math]::Max(1, [math]::Min(50, [int]$p.Cfg.keepRuns)) } else { 5 }
+  $saved = Save-RunHistory -Name $p.Name -ReportDir $p.ReportDir -LogPath $log -Keep $keepRuns
+  if ($saved) { Write-Host "History:     $saved  (newest $keepRuns kept)" }
+} catch { Write-Warning "Could not save run history: $($_.Exception.Message)" }
 if (-not $done) { Write-Warning "The run did not finish before the timeout / the game exited early."; exit 2 }

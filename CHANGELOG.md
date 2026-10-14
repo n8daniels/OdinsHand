@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+* **Run history, kept small.** After each `run` the report and game log are saved as one zip (a few KB) under `%LOCALAPPDATA%\OdinsHand\runs\<project>`; only the newest `keepRuns` (default 5) are kept. Screenshots are not kept.
+* **Bug-report bundle.** `New-BugReport.ps1` / `odins.ps1 bundle` zips the latest run for a GitHub issue, with usernames, paths, Steam ids, e-mail addresses and server addresses/passwords redacted. Nothing is uploaded. Only the newest 3 bundles are kept.
+* **Reports now record the environment**: Odin's Hand and BepInEx versions and every loaded plugin (GUID and version), under `telemetry`.
 * **`Clean-TestSaves.ps1` / `odins.ps1 clean`.** Removes the disposable test characters harnesses leave behind. Dry run by default; exact names from `odinshand.json` only; searches local and Steam-cloud saves; moves to a backup instead of deleting; verifies every other save is unchanged; refuses while Valheim is running. Worlds are not handled.
 * **Distance to other biomes.** Each spawn, and the start and end of every run, records the nearest point of every other biome: distance in metres, compass bearing and the exact point (for example `BlackForest 504 m NE`). It samples the world generator on rings out to 3,000 m (40 m apart, 32 rays) and bisects to the edge, so it is accurate to a few metres along a ray and can miss a biome thinner than the 11-degree gap between rays; a biome further than 3 km is not listed. About a millisecond per search. `BiomeSearch.FindNearest(position)` is public for cases. Per-case positions do not include it, to keep them cheap.
 * The Smoke example's movement case now tries each direction: the persistent test character can end a run facing an obstacle.

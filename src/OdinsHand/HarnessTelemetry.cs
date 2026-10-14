@@ -186,6 +186,9 @@ namespace OdinsHand
         }
 
         public string Character, World, GameVersion;
+        /// <summary>Which Odin's Hand and BepInEx produced the report, and what else was loaded. For bug reports.</summary>
+        public string OdinsHandVersion, BepInExVersion;
+        public readonly List<string> Plugins = new List<string>();
         public long Seed;
         public int Day;
 
@@ -200,12 +203,23 @@ namespace OdinsHand
             try { Seed = ZNet.World != null ? ZNet.World.m_seed : 0; } catch { }
             try { GameVersion = Version.GetVersionString(); } catch { }
             try { Day = EnvMan.instance != null ? EnvMan.instance.GetCurrentDay() : 0; } catch { }
+            try { OdinsHandVersion = typeof(HarnessTelemetry).Assembly.GetName().Version.ToString(3); } catch { }
+            try { BepInExVersion = typeof(BepInEx.BaseUnityPlugin).Assembly.GetName().Version.ToString(); } catch { }
+            try
+            {
+                Plugins.Clear();
+                foreach (var info in BepInEx.Bootstrap.Chainloader.PluginInfos.Values)
+                    Plugins.Add(info.Metadata.GUID + " " + info.Metadata.Version);
+                Plugins.Sort(StringComparer.OrdinalIgnoreCase);
+            }
+            catch { }
         }
 
         /// <summary>Human-readable lines for the log and the text report.</summary>
         public IEnumerable<string> Describe()
         {
             yield return $"character '{Character}' in world '{World}' (seed {Seed}), game {GameVersion}, day {Day}";
+            yield return $"Odin's Hand {OdinsHandVersion}, BepInEx {BepInExVersion}, {Plugins.Count} plugin(s): {string.Join(", ", Plugins.ToArray())}";
             for (var i = 0; i < SpawnList.Count; i++)
             {
                 yield return $"spawn #{i + 1}: {SpawnList[i]}";
@@ -227,7 +241,12 @@ namespace OdinsHand
              .Append(",\"world\":").Append(HarnessReport.Quote(World))
              .Append(",\"seed\":").Append(Seed.ToString(CultureInfo.InvariantCulture))
              .Append(",\"gameVersion\":").Append(HarnessReport.Quote(GameVersion))
-             .Append(",\"day\":").Append(Day);
+             .Append(",\"day\":").Append(Day)
+             .Append(",\"odinsHandVersion\":").Append(HarnessReport.Quote(OdinsHandVersion))
+             .Append(",\"bepInExVersion\":").Append(HarnessReport.Quote(BepInExVersion));
+            b.Append(",\"plugins\":[");
+            for (var i = 0; i < Plugins.Count; i++) { if (i > 0) b.Append(','); b.Append(HarnessReport.Quote(Plugins[i])); }
+            b.Append(']');
 
             b.Append(",\"spawns\":[");
             for (var i = 0; i < SpawnList.Count; i++) { if (i > 0) b.Append(','); SpawnList[i].AppendJson(b); }

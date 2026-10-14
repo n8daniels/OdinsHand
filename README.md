@@ -139,6 +139,7 @@ and not lost. This matters most for mods with random spawn points.
 | `audit` | DLLs checked by `odins.ps1 audit`. |
 | `jotunn` | Optional version (e.g. `"2.30.2"`): copies `Jotunn.dll` from the NuGet cache into the profile, for mods that need it. |
 | `tests` | Optional unit-test project run before each deploy. |
+| `keepRuns` | How many past runs to keep as small zips (default 5, max 50). |
 | `character`, `world` | Disposable test save names (defaults `OdinsTester`, `OdinsHandTest`). |
 | `gameDir`, `profileDir` | Optional overrides. |
 
@@ -146,6 +147,21 @@ Commands: `profile`, `run`, `deploy`, `audit`. Switches for `run`: `-Only <text>
 `-Server host:port -ServerPassword pw` (join a dedicated server instead of a local world).
 
 In game, the harness also adds a `<reportName>.selftest [filter]` console command.
+
+## Logs, run history and bug reports
+
+Disk use is deliberately small and bounded:
+
+* The current run's report and screenshots live in `%TEMP%\<reportName>-harness` and are replaced by the next run; the game log is replaced on each launch.
+* After each `run`, the report and the game log are saved as **one zip of a few KB** in `%LOCALAPPDATA%\OdinsHand\runs\<project>`, and only the newest
+  5 are kept (`"keepRuns"` in `odinshand.json`, 1 to 50). Screenshots are not kept.
+* Nothing is ever uploaded. There is no network code beyond the one-time BepInEx download.
+
+To report a bug, run `odins.ps1 bundle` (`scripts\New-BugReport.ps1`). It zips the latest run into `%LOCALAPPDATA%\OdinsHand\bug-reports` (newest 3 kept).
+The bundle holds the report (results, Odin's Hand / BepInEx / game versions, every loaded plugin, where the player was), the game log, your
+`odinshand.json`, the harness config and a short system summary. Windows user name, profile path, machine name, Steam account ids, e-mail addresses, server
+addresses and server passwords are redacted, and screenshots are left out unless you pass `-IncludeScreenshots`. Redaction is a safety net: open the zip and
+read it before attaching it to an issue.
 
 ## Cleaning up test characters
 

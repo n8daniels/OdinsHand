@@ -7,6 +7,7 @@
     .\odins.ps1 deploy      build and copy the DLLs into the dev profile, without running
     .\odins.ps1 audit       list non-public game members your DLLs reference
     .\odins.ps1 clean       dry run: list this project's test characters that could be removed (add -Apply to move them to a backup)
+    .\odins.ps1 bundle      zip the latest run (redacted, never uploaded) to attach to a bug report
 #>
 # Deliberately a plain parameter and nothing else (no [Parameter] attribute - that would make this an advanced function that
 # rejects unknown flags): anything after the command stays in $args, and splatting $args (unlike splatting an
@@ -14,7 +15,7 @@
 param([string]$Command = "run")
 $ErrorActionPreference = "Stop"
 
-$scripts = @{ profile = "New-DevProfile.ps1"; run = "Run-Harness.ps1"; deploy = "Deploy-Dev.ps1"; audit = "Audit-Access.ps1"; clean = "Clean-TestSaves.ps1" }
+$scripts = @{ profile = "New-DevProfile.ps1"; run = "Run-Harness.ps1"; deploy = "Deploy-Dev.ps1"; audit = "Audit-Access.ps1"; clean = "Clean-TestSaves.ps1"; bundle = "New-BugReport.ps1" }
 if (-not $scripts.ContainsKey($Command)) { throw "Unknown command '$Command'. Use: $($scripts.Keys -join ', ')." }
 
 $packages = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE ".nuget\packages" }
