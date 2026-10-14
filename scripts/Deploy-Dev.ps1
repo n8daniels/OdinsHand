@@ -14,7 +14,13 @@ if ($p.Cfg.tests -and -not $SkipTests) {
   if ($LASTEXITCODE -ne 0) { throw "Unit tests failed" }
 }
 dotnet build (Join-Path $p.Root $p.Cfg.solution) -c Release --nologo -v q "-p:ValheimDir=$($p.GameDir)"
-if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+if ($LASTEXITCODE -ne 0) {
+  # Jotunn 2.30's build step publicizes game assemblies in every project at once, and parallel projects race on the same
+  # file ("Could not publicize ..."). A single-node build avoids it, so retry that way before giving up.
+  Write-Warning "Build failed; retrying on a single node (-m:1) in case this is the parallel publicizer race."
+  dotnet build (Join-Path $p.Root $p.Cfg.solution) -c Release --nologo -v q -m:1 "-p:ValheimDir=$($p.GameDir)"
+  if ($LASTEXITCODE -ne 0) { throw "Build failed" }
+}
 
 New-Item -ItemType Directory -Force $plugins | Out-Null
 foreach ($dll in $p.Cfg.plugins) {
