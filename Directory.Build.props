@@ -9,6 +9,6 @@
     <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
     <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
     <BepInExCoreDir Condition="'$(BepInExCoreDir)' == ''">$(ValheimDir)\BepInEx\core</BepInExCoreDir>
-    <Version>0.1.0</Version>
+    <Version>0.2.1</Version>
   </PropertyGroup>
 </Project>

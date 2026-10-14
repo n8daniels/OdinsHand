@@ -1,0 +1,16 @@
+{
+  "name": "MyMod",
+  "guid": "com.example.mymod.harness",
+  "reportName": "mymod",
+  "logTag": "MyMod Harness (dev)",
+  "solution": "MyMod.Harness.csproj",
+  "plugins": [
+    "bin/Release/MyMod.Harness.dll",
+    "bin/Release/OdinsHand.dll"
+  ],
+  "audit": [
+    "bin/Release/MyMod.Harness.dll"
+  ],
+  "character": "MyModTester",
+  "world": "MyModTest"
+}

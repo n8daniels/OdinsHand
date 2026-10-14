@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    DEVELOPMENT ONLY. A separate BepInEx plugin, so the mod you ship carries no test code and no reference to the harness.
+    Add your mod as a reference below, and add its DLL to "plugins" in odinshand.json.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>MyMod.Harness</AssemblyName>
+    <RootNamespace>MyMod.Harness</RootNamespace>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\$(Configuration)\</OutputPath>
+    <IsPackable>false</IsPackable>
+    <!-- Puts OdinsHand.dll in the output folder next to the plugin, where the deploy script picks it up. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <Import Project="build\GameReferences.props" />
+
+  <ItemGroup>
+    <PackageReference Include="OdinsHand" Version="ODINSHAND_VERSION" />
+    <!-- Your mod, so cases can check what it believes and not only what the screen shows:
+    <ProjectReference Include="..\src\MyModPlugin\MyModPlugin.csproj"><Private>false</Private></ProjectReference> -->
+  </ItemGroup>
+</Project>

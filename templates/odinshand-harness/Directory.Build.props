@@ -1,0 +1,14 @@
+<Project>
+  <!--
+    Game location. Override with:  dotnet build -p:ValheimDir="D:\Games\Valheim"
+    or set the VALHEIM_DIR environment variable. Game DLLs are referenced in place and never copied.
+    BepInEx core DLLs are taken from the game folder if it has them, else from -p:BepInExCoreDir=...
+  -->
+  <PropertyGroup>
+    <ValheimDir Condition="'$(ValheimDir)' == '' And '$(VALHEIM_DIR)' != ''">$(VALHEIM_DIR)</ValheimDir>
+    <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
+    <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
+    <BepInExCoreDir Condition="'$(BepInExCoreDir)' == ''">$(ValheimDir)\BepInEx\core</BepInExCoreDir>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+</Project>

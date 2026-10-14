@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "n8daniels",
+  "classifications": [ "Valheim", "BepInEx", "Test", "Harness" ],
+  "identity": "OdinsHand.Harness",
+  "name": "Odin's Hand harness plugin",
+  "shortName": "odinshand",
+  "description": "A Valheim in-game test harness plugin for your BepInEx mod, wired to Odin's Hand: starter cases, config, and a one-command runner.",
+  "tags": { "language": "C#", "type": "project" },
+  "sourceName": "MyMod",
+  "preferNameDirectory": true,
+  "symbols": {
+    "modGuid": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "com.example.mymod",
+      "replaces": "com.example.mymod",
+      "description": "BepInEx GUID of the mod you are testing. The harness plugin depends on it and gets the GUID + .harness."
+    },
+    "odinsHandVersion": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "0.2.1",
+      "replaces": "ODINSHAND_VERSION",
+      "description": "Version of the OdinsHand NuGet package to reference."
+    }
+  }
+}

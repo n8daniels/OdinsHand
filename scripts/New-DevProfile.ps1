@@ -5,15 +5,29 @@
   It does NOT touch Thunderstore Mod Manager / r2modman / Gale and does NOT change the game folder. valheim.exe is started
   directly with Doorstop arguments that point at this profile (so a stale or missing BepInEx in the game folder is irrelevant).
 
-  You need a BepInEx 5.4.2x "core" folder (the one containing BepInEx.Preloader.dll) from any working install or the
-  BepInEx release zip (BepInEx_win_x64_5.4.23.x.zip -> BepInEx\core). Pass it with -CoreSource.
+  BepInEx 5 is downloaded for you from its official GitHub release and cached under %LOCALAPPDATA%\OdinsHand. To use a copy
+  you already have instead, pass -CoreSource <...\BepInEx\core> (the folder containing BepInEx.Preloader.dll).
 
-  Usage:  .\scripts\New-DevProfile.ps1 -CoreSource <...\BepInEx\core> [-Project <dir>]
+  Usage:  .\scripts\New-DevProfile.ps1 [-Project <dir>] [-CoreSource <...\BepInEx\core>] [-BepInExVersion 5.4.23.2]
 #>
-param([string]$Project = "", [Parameter(Mandatory)][string]$CoreSource)
+param([string]$Project = "", [string]$CoreSource = "", [string]$BepInExVersion = "5.4.23.2")
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\_Config.ps1"
 $p = Get-OdinsConfig $Project
+
+if (-not $CoreSource) {
+  $cache = Join-Path $env:LOCALAPPDATA "OdinsHand\bepinex-$BepInExVersion"
+  $CoreSource = Join-Path $cache "BepInEx\core"
+  if (-not (Test-Path "$CoreSource\BepInEx.Preloader.dll")) {
+    $zip = Join-Path $env:TEMP "BepInEx_win_x64_$BepInExVersion.zip"
+    $url = "https://github.com/BepInEx/BepInEx/releases/download/v$BepInExVersion/BepInEx_win_x64_$BepInExVersion.zip"
+    Write-Host "Downloading BepInEx $BepInExVersion ..."
+    Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+    New-Item -ItemType Directory -Force $cache | Out-Null
+    Expand-Archive -Path $zip -DestinationPath $cache -Force
+    Remove-Item $zip -Force
+  }
+}
 if (-not (Test-Path "$CoreSource\BepInEx.Preloader.dll")) { throw "No BepInEx core at '$CoreSource' (expected BepInEx.Preloader.dll)." }
 
 $bep = Join-Path $p.ProfileDir "BepInEx"

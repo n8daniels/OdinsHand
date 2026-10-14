@@ -7,8 +7,6 @@
   -->
   <ItemGroup>
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" />
-    <!-- Compile-time only: Jotunn.dll must be installed in BepInEx/plugins (hard dependency). -->
-    <PackageReference Include="JotunnLib" Version="2.30.2" ExcludeAssets="runtime" />
   </ItemGroup>
 
   <ItemGroup>

@@ -12,8 +12,30 @@
     <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OutputPath>bin\$(Configuration)\</OutputPath>
-    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1587;CS1570;CS1572;NU5111;NU5128</NoWarn>
+
+    <!-- NuGet package: the library plus the scripts that drive it. Game, BepInEx and Harmony assemblies are NOT
+         dependencies: the consuming harness project already references its own copies. -->
+    <IsPackable>true</IsPackable>
+    <PackageId>OdinsHand</PackageId>
+    <Authors>n8daniels</Authors>
+    <Description>An in-game test harness for Valheim (BepInEx 5) mods. Launches the real game, loads a disposable character and world, runs your test cases against live game objects, takes screenshots and prints a pass/fail report.</Description>
+    <PackageTags>valheim;bepinex;modding;testing;harness;unity</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/n8daniels/OdinsHand</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/n8daniels/OdinsHand.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <IncludeBuildOutput>true</IncludeBuildOutput>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\scripts\**\*" Pack="true" PackagePath="tools\scripts\"
+          Exclude="..\..\scripts\**\bin\**;..\..\scripts\**\obj\**" />
+  </ItemGroup>
 
   <Import Project="..\..\build\GameReferences.props" />
 </Project>

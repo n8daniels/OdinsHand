@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Packs the project template:  dotnet new install OdinsHand.Templates   then   dotnet new odinshand -n MyMod -->
+  <PropertyGroup>
+    <PackageType>Template</PackageType>
+    <PackageId>OdinsHand.Templates</PackageId>
+    <Version>0.2.1</Version>
+    <Title>Odin's Hand harness template</Title>
+    <Authors>n8daniels</Authors>
+    <Description>dotnet new template that adds an Odin's Hand in-game test harness plugin to a Valheim (BepInEx) mod.</Description>
+    <PackageTags>valheim;bepinex;template;testing</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/n8daniels/OdinsHand</PackageProjectUrl>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <NoDefaultExcludes>true</NoDefaultExcludes>
+    <NoWarn>$(NoWarn);NU5128;NU5110;NU5111</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="odinshand-harness\**\*" Exclude="odinshand-harness\**\bin\**;odinshand-harness\**\obj\**" />
+  </ItemGroup>
+</Project>

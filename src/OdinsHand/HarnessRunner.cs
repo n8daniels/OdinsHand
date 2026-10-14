@@ -90,11 +90,14 @@ namespace OdinsHand
             var errors = new UnityErrorWatch();
             errors.Start();
 
+            var selected = 0;
             foreach (var testCase in _cases)
             {
                 if (!string.IsNullOrEmpty(filter) &&
                     testCase.Name.IndexOf(filter, StringComparison.OrdinalIgnoreCase) < 0)
                     continue;
+
+                selected++;
 
                 context.CurrentCase = testCase.Name;
 
@@ -127,6 +130,17 @@ namespace OdinsHand
             }
 
             errors.Dispose();
+
+            // A run that executed nothing must not read as a pass. "0 failures" from zero cases is the quietest way for a
+            // harness to lie: a filter typo, or cases the plugin never found, look identical to success.
+            context.CurrentCase = "harness";
+            if (selected == 0)
+            {
+                context.Check("at least one case ran", false,
+                    _cases.Count == 0
+                        ? "no cases were registered. With attributes: is [Cases] on a public class in the harness assembly, with [Case] methods taking a HarnessContext?"
+                        : $"the filter '{filter}' matched none of the {_cases.Count} registered case(s)");
+            }
 
             context.CurrentCase = "engine";
             foreach (var line in errors.Summary) context.Log("[unity] " + line);
