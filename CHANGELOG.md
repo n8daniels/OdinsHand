@@ -4,6 +4,8 @@
 
 * **Dedicated-server runs.** `Run-ServerHarness.ps1` / `odins.ps1 server` starts a local dedicated server (your mod, with server config that can differ from the client's), joins it with the harness, runs the cases, stops the server and scans ITS logs for errors. `New-ServerProfile.ps1` builds the server profile. Configured by a `server` section in `odinshand.json`. Generalised from BubbleBabies' scripts.
 * **The no-map setting is recorded** in each report (`telemetry.noMap`), so a run on a no-map server explains why map-driven cases could not run.
+* **Conditions are recorded with every location:** weather, how far through the day, the Run skill and the active status effects (Wet, Cold, Rested, SoftDeath...). Found while chasing a mod's state-dependent test failures: a number that moves with the character's condition is invisible in a report that does not say what the condition was.
+* **Readiness now waits for the player to land.** `Kit.WaitForPlayerReady` additionally requires the player on the ground (or swimming) for a second. Joining a server starts the valkyrie intro later than a local world does, and the old check passed in the moment before the flight began.
 * **The compiled library no longer embeds the build machine's path** (it recorded the full `.pdb` path, including the Windows user name). Fixed with a path map.
 
 * **Run history, kept small.** After each `run` the report and game log are saved as one zip (a few KB) under `%LOCALAPPDATA%\OdinsHand\runs\<project>`; only the newest `keepRuns` (default 5) are kept. Screenshots are not kept.
