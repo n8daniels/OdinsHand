@@ -65,6 +65,21 @@ namespace Smoke.Harness
             ctx.Check("god mode was restored after the previous case", !Player.m_localPlayer.InGodMode());
         }
 
+        [Case("smoke:telemetry")]
+        public void LocationIsRecorded(HarnessContext ctx)
+        {
+            // The report records where the character spawned and where the run happened, for mods with random spawns.
+            var spawn = HarnessTelemetry.LastSpawn;
+            ctx.CheckNotNull("the spawn location was recorded", spawn);
+            if (spawn != null) ctx.Check("the spawn has a biome and a zone", !string.IsNullOrEmpty(spawn.Biome), spawn.ToString());
+
+            var here = LocationSnapshot.Capture();
+            ctx.CheckNotNull("the current location can be captured", here);
+            if (spawn != null && here != null)
+                ctx.Check("the player is still near where it spawned", Vector3.Distance(spawn.Position, here.Position) < 500f,
+                    $"{Vector3.Distance(spawn.Position, here.Position):0} m from the spawn");
+        }
+
         [Case("smoke:screenshot")]
         public IEnumerator Screenshot(HarnessContext ctx)
         {

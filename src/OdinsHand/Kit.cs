@@ -59,6 +59,7 @@ namespace OdinsHand
             try
             {
                 if (__instance == null || __instance != Player.m_localPlayer) return;
+                HarnessTelemetry.RecordSpawn();
                 var a = _once;
                 _once = null;
                 a?.Invoke();

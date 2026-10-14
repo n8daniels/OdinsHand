@@ -32,6 +32,9 @@ namespace OdinsHand
 
         public bool IsRunning { get; private set; }
 
+        /// <summary>Where the player was and where each case happened. Filled in by <see cref="Run"/>.</summary>
+        public HarnessTelemetry Telemetry { get; private set; } = new HarnessTelemetry();
+
         /// <summary>
         /// Longest a single case may run before it is abandoned and recorded as an error, in seconds. A case that waits
         /// forever for something that will never happen would otherwise hold the whole run until the outer timeout.
@@ -78,6 +81,9 @@ namespace OdinsHand
 
             IsRunning = true;
             _results.Clear();
+            Telemetry = new HarnessTelemetry();
+            Telemetry.CaptureContext();
+            Telemetry.RunStart = LocationSnapshot.Capture();
 
             var context = new HarnessContext(_results, _log,
                 CaptureScreenshots ? OutputDirectory : null);
@@ -120,7 +126,12 @@ namespace OdinsHand
                 }
 
                 _log($"[harness] -> {testCase.Name}");
+                var caseTelemetry = new CaseTelemetry { Case = testCase.Name, Start = LocationSnapshot.Capture() };
+                var caseStarted = UnityEngine.Time.realtimeSinceStartup;
                 yield return RunIsolated(testCase, context);
+                caseTelemetry.End = LocationSnapshot.Capture();
+                caseTelemetry.Seconds = UnityEngine.Time.realtimeSinceStartup - caseStarted;
+                Telemetry.Cases.Add(caseTelemetry);
 
                 // Always, and outside RunIsolated, which exits by yield break down several
                 // paths and so cannot be relied on to reach a trailing statement.
@@ -150,6 +161,7 @@ namespace OdinsHand
                     ? null
                     : $"{errors.TotalCount} Unity error(s) in {errors.DistinctCount} distinct place(s) - see the [unity] lines above");
 
+            Telemetry.RunEnd = LocationSnapshot.Capture();
             IsRunning = false;
             Report(context);
         }
@@ -243,6 +255,8 @@ namespace OdinsHand
             foreach (var line in table.Split('\n'))
                 if (!string.IsNullOrEmpty(line.Trim())) _log("[harness] " + line.TrimEnd());
 
+            foreach (var line in Telemetry.Describe()) _log("[harness] " + line);
+
             _log($"[harness] {passed} passed, {failed} failed, {_results.Count} checks total.");
 
             try
@@ -250,10 +264,10 @@ namespace OdinsHand
                 Directory.CreateDirectory(OutputDirectory);
 
                 var jsonPath = Path.Combine(OutputDirectory, "report.json");
-                File.WriteAllText(jsonPath, HarnessReport.ToJson(_results, _name, context.Screenshots));
+                File.WriteAllText(jsonPath, HarnessReport.ToJson(_results, _name, context.Screenshots, Telemetry));
 
                 var textPath = Path.Combine(OutputDirectory, "report.txt");
-                File.WriteAllText(textPath, table);
+                File.WriteAllText(textPath, table + Environment.NewLine + string.Join(Environment.NewLine, new List<string>(Telemetry.Describe()).ToArray()) + Environment.NewLine);
 
                 _log($"[harness] report written to {jsonPath}");
             }

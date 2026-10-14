@@ -112,6 +112,17 @@ Prefer subclassing? `HarnessCase` and `HarnessRunner.Add(...)` still work; overr
 * **Fails a run that executed nothing**, so a filter typo cannot look like success.
 * Refuses to run against the wrong character, or an unintended server.
 
+## Telemetry: where things happened
+
+Every run records where the player was, so a failure that only happens in one biome, or far from the origin, is visible in the report
+and not lost. This matters most for mods with random spawn points.
+
+* `report.json` has a `"telemetry"` block: `character`, `world`, `seed`, `gameVersion`, `day`; `spawns` (each time the local player spawned: x, y, z,
+  biome, zone); `runStart` and `runEnd`; and `cases`, with the start and end position and the seconds each case took.
+* `report.txt` and the log end with the same facts in words, for example `spawn #1: (-4.3, 76.8, 6.6) Meadows, zone 0,0`.
+* In a case: `HarnessTelemetry.LastSpawn` is the most recent spawn and `LocationSnapshot.Capture()` is the player right now, so a case can
+  assert things like "the player is still within 500 m of where it spawned".
+
 ## `odinshand.json`
 
 | Key | Meaning |

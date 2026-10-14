@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+* **Location telemetry.** Every report now records where things happened: the spawn location of each spawn (position, biome, zone), where the run started and ended, and where each case started and ended and how long it took, plus the character, world, seed, game version and day. It is in `report.json` under `"telemetry"`, in `report.txt`, and in the log. Built for mods with random spawn points: a failure that only happens in one biome is otherwise invisible. `HarnessTelemetry.Spawns` / `LastSpawn` and `LocationSnapshot.Capture()` are public for cases to use.
 * `Kit.WaitForPlayerReady` also waits out `Player.InIntro()` (the valkyrie flight of a new character, which is not `InCutscene`).
 * `Deploy-Dev.ps1` retries a failed build on a single node: Jotunn 2.30 projects race on publicizing the same game DLL.
 

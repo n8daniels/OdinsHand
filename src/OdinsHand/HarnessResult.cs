@@ -59,7 +59,7 @@ namespace OdinsHand
             return builder.ToString();
         }
 
-        public static string ToJson(IEnumerable<HarnessResult> results, string harnessName, IEnumerable<string> screenshots)
+        public static string ToJson(IEnumerable<HarnessResult> results, string harnessName, IEnumerable<string> screenshots, HarnessTelemetry telemetry = null)
         {
             var list = new List<HarnessResult>(results);
             int passed = 0, failed = 0, errors = 0, skipped = 0;
@@ -104,7 +104,14 @@ namespace OdinsHand
                 first = false;
                 builder.Append(Quote(shot));
             }
-            builder.Append("]}");
+            builder.Append(']');
+
+            if (telemetry != null)
+            {
+                builder.Append(",\"telemetry\":");
+                telemetry.AppendJson(builder);
+            }
+            builder.Append('}');
 
             return builder.ToString();
         }
@@ -120,7 +127,7 @@ namespace OdinsHand
             }
         }
 
-        private static string Quote(string value)
+        internal static string Quote(string value)
         {
             if (value == null) return "null";
 
