@@ -5,117 +5,177 @@ character and world by itself, runs your test cases against live game objects, t
 pass/fail report. No clicking through menus, no "I think it works".
 
 ```
-> .\scripts\Run-Harness.ps1
-Launching Valheim with the Smoke dev profile...
-[harness] PASS  smoke:player          a local player exists
-[harness] PASS  smoke:virtual-input   walking forward moves the player  [2.3 m]
-[harness] PASS  smoke:screenshot      a screenshot was captured
-[harness] 6 passed, 0 failed, 6 checks total.
+> .\odins.ps1 run
+Launching Valheim with the MyMod dev profile...
+[harness] PASS  mymod:world-is-up   a local player exists
+[harness] PASS  mymod:world-is-up   vanilla content is loaded
+[harness] PASS  engine              no engine errors during the run
+[harness] 3 passed, 0 failed, 3 checks total.
 ```
 
-It was extracted from the harness that verified several of the author's Valheim mods
-(thousands of in-game checks, single-player and against a dedicated server).
+It was extracted from the harness that verified several of the author's Valheim mods (hundreds of in-game checks per mod,
+single-player and against a dedicated server).
 
-## What you get
+## Where it fits
 
-| Piece | What it does |
-|---|---|
-| `OdinsHand` library (`src/OdinsHand`) | `HarnessRunner`, `HarnessCase`, `HarnessContext` (checks, waits, screenshots), a report writer, and a watcher that fails the run if the engine logs errors. |
-| `AutoStart` | From the main menu: creates/loads a **named** test character, creates a local test world (fixed seed) or joins a server, and starts the game. Cannot wander into a real save. |
-| `VirtualInput` | Feeds synthetic movement / attack / jump to the local player (the reliable way: it rewrites the arguments of vanilla's own `Player.SetControls` call). |
-| `Kit` | `WaitForPlayerReady()` (waits out the new-character cutscene), `OnFirstSpawn(...)`, one-line Harmony install. |
-| `scripts/` | `New-DevProfile`, `Deploy-Dev`, `Run-Harness`, `Audit-Access` — a standalone BepInEx profile so it never touches r2modman/Gale or your game folder. |
-| `examples/Smoke.Harness` | A complete, working harness plugin (~150 lines) that needs no mod. Copy it. |
+| | Odin's Hand | Agent bridges (e.g. ValAgentBridge) |
+|---|---|---|
+| You write | C# test cases, run unattended | Nothing; an AI agent drives the live game |
+| Best for | Repeatable regression suites, "did my change break anything", CI-style runs | Exploratory testing, poking at a running game |
+| Result | A pass/fail report you can diff run to run | A conversation |
 
-## Requirements
+They complement each other. Odin's Hand is the one you run before every release.
 
-* Windows, Steam copy of Valheim (tested on 1.0.17), .NET SDK 6+ (`dotnet`), PowerShell 5.1+.
-* A BepInEx 5.4.2x **core** folder (the one containing `BepInEx.Preloader.dll`) — from the BepInEx release zip or any working install.
-* BepInEx 5 only (Valheim's current loader). Not for BepInEx 6.
+## Quick start
 
-## Quick start (try it on the included example)
+Requirements: Windows, the Steam copy of Valheim (tested on 1.0.17), the [.NET SDK](https://dotnet.microsoft.com/download) 6 or newer,
+PowerShell 5.1+, and Steam running. BepInEx 5 is downloaded for you.
 
 ```powershell
-git clone https://github.com/n8daniels/OdinsHand
-cd OdinsHand
-# once: make the isolated dev profile (point -CoreSource at BepInEx\core from the BepInEx zip or another install)
-.\scripts\New-DevProfile.ps1 -CoreSource C:\path\to\BepInEx\core
-# every time:
-.\scripts\Run-Harness.ps1
+dotnet new install OdinsHand.Templates
+dotnet new odinshand -n MyMod --modGuid com.me.mymod     # a harness plugin next to your mod
+cd MyMod
+dotnet restore
+.\odins.ps1 profile     # once: an isolated BepInEx dev profile (it never touches r2modman, Gale, or your game folder)
+.\odins.ps1 run         # build, launch Valheim, run every case, print the report
 ```
 
-Steam must be running; close Valheim first. If your game is not in the default Steam path, set the `VALHEIM_DIR`
-environment variable or `"gameDir"` in `odinshand.json`.
+Close Valheim first. If your game is not in the default Steam path, set the `VALHEIM_DIR` environment variable.
 
-## Use it on your own mod
+### Test your own mod
 
-1. **Make a harness plugin** next to your mod: copy `examples/Smoke.Harness`, rename it, add your mod as a reference. It is a separate
-   BepInEx plugin, so your shipped DLL carries no test code.
-2. **Write cases.** A case is a coroutine so it can wait for frames and seconds:
+1. In the generated `*.Harness.csproj`, reference your mod (the commented `ProjectReference`).
+2. Add your mod's DLL to `plugins` in `odinshand.json`.
+3. Set `[BepInDependency]` in `HarnessPlugin.cs` to your mod's GUID.
+4. Replace the starter cases in `Cases.cs`.
 
-   ```csharp
-   internal sealed class MyStaffCase : HarnessCase
-   {
-       public override string Name => "mystaff:casts";
-       public override bool CanRun(HarnessContext c) => Player.m_localPlayer != null;   // skipped, not failed, from the menu
+The harness is a **separate BepInEx plugin**, so the DLL you ship carries no test code. Never ship it.
 
-       public override IEnumerator Run(HarnessContext ctx)
-       {
-           var p = Player.m_localPlayer;
-           // ...give the player an item, equip it, press attack with VirtualInput...
-           VirtualInput.Active = true; VirtualInput.Attack = true;
-           yield return ctx.Seconds(1f);
-           ctx.Check("the buff appeared", p.GetSEMan().HaveStatusEffect(MyHash));
-           ctx.CheckApprox("it cost 10 Eitr", before - p.GetEitr(), 10f, 0.2f);
-           yield return ctx.Screenshot("mystaff_after_cast");
-       }
+## Writing cases
 
-       public override void Cleanup(HarnessContext c) => VirtualInput.Clear();   // runs even if Run threw
-   }
-   ```
-3. **Add `odinshand.json`** to your project root (see below) and run `.\path\to\OdinsHand\scripts\Run-Harness.ps1 -Project .`
-   (or copy the `scripts` folder into your repo).
+A case is a method. It takes a `HarnessContext` and returns `void` (nothing to wait for) or `IEnumerator` (a coroutine, so
+it can wait frames and seconds, which most things in Unity need).
 
-### `odinshand.json`
+```csharp
+[Cases(Category = "staff")]
+public class StaffCases
+{
+    [Case("staff:casts")]
+    public IEnumerator Casts(HarnessContext ctx)
+    {
+        ctx.Protect();                                   // god mode for this case; restored afterwards
+        var player = Player.m_localPlayer;
+        var before = player.GetEitr();
+
+        VirtualInput.Active = true;
+        VirtualInput.Attack = true;
+        yield return ctx.Seconds(1f);
+
+        ctx.Check("the buff appeared", player.GetSEMan().HaveStatusEffect(MyHash));
+        ctx.CheckApprox("it cost 10 Eitr", before - player.GetEitr(), 10f, 0.2f);
+        yield return ctx.Screenshot("staff_after_cast");
+    }
+
+    [AfterEach] public void Reset(HarnessContext ctx) => VirtualInput.Clear();
+}
+```
+
+| Attribute | Meaning |
+|---|---|
+| `[Cases]` | Class holding cases. One instance per run. |
+| `[Case("name", TimeoutSeconds = 600)]` | A case. The name is used in the report and by `-Only`. The timeout is for cases that are slow on purpose; the default is 300 s. |
+| `[Skip("reason")]` | Recorded as a skip, never a failure. |
+| `[Only]` | If anything has it, only those cases run. For focusing while you work. |
+| `[NoPlayer]` | Valid from the main menu. Without it a case is skipped when there is no local player. |
+| `[BeforeEach]`, `[AfterEach]` | Per-case hooks. `[AfterEach]` runs even if the case threw. |
+
+Prefer subclassing? `HarnessCase` and `HarnessRunner.Add(...)` still work; override `HarnessHost.AddCases` and turn off
+`DiscoverCasesAutomatically`.
+
+### What a case can do (`HarnessContext`)
+
+* **Checks** (they record, they never throw, so one failure does not hide the rest): `Check`, `CheckNotNull`, `CheckEqual`,
+  `CheckApprox`, `Skip`.
+* **Waiting**: `Frames(n)`, `Seconds(s)`, `WaitUntil(condition, timeout, onResult)`.
+* **Screenshots**: `Screenshot(name)`, `ClipFrame(clip, index)` for assembling a short clip outside the game.
+* **Helpers that put the world back** (undone after the case, even on a throw): `Protect(ghost)`, `Spawn(prefab, pos)`,
+  `Watch(method)` (records calls and their arguments), `OnCleanup(action)`.
+* **Input**: `VirtualInput` feeds synthetic movement, attack and jump to the local player.
+
+### What the runner does for you
+
+* Skips (rather than fails) cases whose preconditions are not met.
+* Isolates cases: one that throws is recorded and the run continues.
+* Abandons a case that exceeds its time limit and records the game state at that moment.
+* Waits out a death and respawn instead of failing everything after it.
+* **Fails the run if the engine logged errors**, which catches the exception thrown inside somebody's `Awake`.
+* **Fails a run that executed nothing**, so a filter typo cannot look like success.
+* Refuses to run against the wrong character, or an unintended server.
+
+## `odinshand.json`
 
 | Key | Meaning |
 |---|---|
 | `name` | Short project name. Dev profile = `<parent of project>\<name>Dev-profile`. |
 | `guid` | Your harness plugin's BepInEx GUID. The script writes `BepInEx/config/<guid>.cfg` with `[AutoStart]` and `[Harness]`. |
-| `reportName` | The name you pass to `new HarnessRunner("<reportName>", …)`. Reports go to `%TEMP%\<reportName>-harness`. |
+| `reportName` | Your `HarnessHost.ReportName`. Reports go to `%TEMP%\<reportName>-harness`. |
 | `logTag` | Your harness plugin's display name (used to tidy the log lines that are printed). |
-| `solution` | Solution to build (relative to the project). |
+| `solution` | Solution or project to build (relative to the project). |
 | `plugins` | DLLs (relative paths) copied into the profile's plugin folder. Include your mod, your harness and `OdinsHand.dll`. |
-| `audit` | DLLs checked by `Audit-Access.ps1`. |
-| `jotunn` | Optional version (e.g. `"2.30.2"`): copies `Jotunn.dll` from the NuGet cache into the profile. |
+| `audit` | DLLs checked by `odins.ps1 audit`. |
+| `jotunn` | Optional version (e.g. `"2.30.2"`): copies `Jotunn.dll` from the NuGet cache into the profile, for mods that need it. |
 | `tests` | Optional unit-test project run before each deploy. |
 | `character`, `world` | Disposable test save names (defaults `OdinsTester`, `OdinsHandTest`). |
 | `gameDir`, `profileDir` | Optional overrides. |
 
-Script switches: `-Only <text>` (run cases whose name contains it), `-KeepOpen`, `-NoDeploy`, `-TimeoutMinutes`,
+Commands: `profile`, `run`, `deploy`, `audit`. Switches for `run`: `-Only <text>`, `-KeepOpen`, `-NoDeploy`, `-TimeoutMinutes`,
 `-Server host:port -ServerPassword pw` (join a dedicated server instead of a local world).
+
+In game, the harness also adds a `<reportName>.selftest [filter]` console command.
+
+## Safety
+
+Cases spawn things, move the clock and change state, so the harness is strict about where it runs:
+
+* It uses a **named, disposable, local** character and world, created on demand. It never "picks the first one".
+* After selecting the character it **reads back which profile the game will actually load** and stops if it is not the
+  configured one. (An early version of this library skipped that step and could run against whoever a human last played;
+  see the changelog.)
+* It will not run on a joined server unless you configured `Server` on purpose.
 
 ## Lessons baked in (they cost real debugging time)
 
 * **The publicizer lies at runtime.** Referencing the *publicized* game assembly lets private members compile, but the real
   assembly still enforces access: the JIT rejects the whole method. Reach private members through `AccessTools`, and run
-  `scripts/Audit-Access.ps1` — it lists every non-public game member your DLL references.
+  `odins.ps1 audit`: it lists every non-public game member your DLL references.
 * **Never call `Player.SetControls` yourself.** Vanilla calls it every frame; the last call wins. `VirtualInput` rewrites the arguments instead.
-* **A new character plays an intro cutscene** over a valid spawn. `Kit.WaitForPlayerReady()` waits it out.
-* **Restore state in `Cleanup`, not on the last line of `Run`** — a case that throws halfway otherwise poisons the cases after it.
-* **A skipped case is information; a spurious failure is noise.** Use `CanRun` / `SkipReason`.
-* **Compare against a baseline measured just before the action**, not a constant: vanilla's ambient effects (Cold, Wet, Rested…) move your numbers.
-* **Immortal targets** (the training dummy) never lose health — record `Character.Damage` calls instead and read type/amount/knockback from the `HitData`.
+* **A new character plays an intro cutscene** over a valid spawn, and it starts a moment *after* the spawn callback.
+  `Kit.WaitForPlayerReady()` waits for it.
+* **Highlighting a character is not loading it.** Only `OnCharacterStart` commits the profile the game loads.
+* **Restore state in `Cleanup`, not on the last line of `Run`.** A case that throws halfway otherwise poisons the cases after it.
+  `Protect`/`Spawn`/`Watch` do this for you.
+* **A skipped case is information; a spurious failure is noise.** Use `[NoPlayer]`, `[Skip]` or `CanRun`/`SkipReason`.
+* **Compare against a baseline measured just before the action**, not a constant: vanilla's ambient effects (Cold, Wet, Rested) move your numbers.
+* **Immortal targets** (the training dummy) never lose health. Record `Character.Damage` calls with `Watch` and read the `HitData`.
+* **Mono inlines tiny methods** (under about 20 bytes of IL), so a `Watch` on a trivial getter can miss calls.
+* **A key press does not reach mods that read `UnityEngine.Input` directly**, only ones that go through the game's input layer.
 
-## Status
+## Limits
 
-0.1.0. The core is the code that verified the mods mentioned above; this repo repackages it under one namespace (`OdinsHand`) with
-generic scripts. Windows + PowerShell only for now. Issues and pull requests welcome.
+* Windows and PowerShell only, for now. BepInEx 5 only (Valheim's current loader), not BepInEx 6.
+* Needs the real game and Steam, so it cannot run on a hosted CI machine. Run it locally before you tag a release.
+* The dedicated-server scripts used in the author's own repos are not generalised yet. `-Server` joins an existing server.
+* Tested on Valheim 1.0.17. A game update can break access to internals; `audit` will tell you which.
 
-*Migrating from the old copy-pasted `Valheim.ModHarness`:* change `using Valheim.ModHarness;` to `using OdinsHand;`, and move
-`AutoStart` / `VirtualInput` usage to the library versions (they are public here).
+## Building from source
+
+```powershell
+dotnet build OdinsHand.sln -c Release          # needs Valheim installed (the game DLLs are referenced in place)
+.\scripts\Run-Harness.ps1                        # runs the bundled Smoke example in the real game
+.\tools\Pack-Release.ps1                         # builds the NuGet package and the template into .\artifacts
+```
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Valheim is a trademark of Iron Gate AB; this project is unaffiliated. No game files are
+MIT, see [LICENSE](LICENSE). Valheim is a trademark of Iron Gate AB; this project is unaffiliated. No game files are
 included or redistributed: game DLLs are referenced in place from your own install.

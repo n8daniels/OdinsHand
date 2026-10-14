@@ -1,0 +1,49 @@
+name: CI
+
+# The library is compiled against Valheim's own assemblies, which cannot be redistributed, so a hosted runner cannot build or
+# run it. This job checks everything that does not need the game; the in-game run happens on a developer machine
+# (tools/Pack-Release.ps1 runs the Smoke harness before packing).
+on:
+  push:
+  pull_request:
+
+jobs:
+  static-checks:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PowerShell scripts parse
+        shell: pwsh
+        run: |
+          $bad = 0
+          Get-ChildItem -Recurse -Include *.ps1 | Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } | ForEach-Object {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors)
+            if ($errors) { $bad++; Write-Host "::error file=$($_.FullName)::$($errors[0].Message)" }
+            else { Write-Host "ok  $($_.Name)" }
+          }
+          if ($bad) { exit 1 }
+
+      - name: JSON files are valid
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse -Include *.json | Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } | ForEach-Object {
+            Get-Content $_.FullName -Raw | ConvertFrom-Json | Out-Null
+            Write-Host "ok  $($_.Name)"
+          }
+
+      - name: Template instantiates and substitutes
+        shell: pwsh
+        run: |
+          dotnet new install templates/odinshand-harness
+          dotnet new odinshand -n CiMod --modGuid com.ci.cimod -o "$env:RUNNER_TEMP/CiMod"
+          $dir = "$env:RUNNER_TEMP/CiMod"
+          foreach ($f in "CiMod.Harness.csproj", "HarnessPlugin.cs", "Cases.cs", "odinshand.json", "odins.ps1", "build/GameReferences.props") {
+            if (-not (Test-Path "$dir/$f")) { throw "template output is missing $f" }
+          }
+          $plugin = Get-Content "$dir/HarnessPlugin.cs" -Raw
+          if ($plugin -notmatch 'com\.ci\.cimod\.harness') { throw "modGuid was not substituted" }
+          if ((Get-ChildItem $dir -Recurse -File | Select-String -Pattern 'MyMod|com\.example\.mymod|ODINSHAND_VERSION' -List)) {
+            throw "template placeholders were left behind"
+          }

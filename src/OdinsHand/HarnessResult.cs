@@ -61,12 +61,29 @@ namespace OdinsHand
 
         public static string ToJson(IEnumerable<HarnessResult> results, string harnessName, IEnumerable<string> screenshots)
         {
+            var list = new List<HarnessResult>(results);
+            int passed = 0, failed = 0, errors = 0, skipped = 0;
+            foreach (var r in list)
+            {
+                if (r.Outcome == HarnessOutcome.Pass) passed++;
+                else if (r.Outcome == HarnessOutcome.Fail) failed++;
+                else if (r.Outcome == HarnessOutcome.Skip) skipped++;
+                else errors++;
+            }
+
             var builder = new StringBuilder();
             builder.Append("{\"harness\":").Append(Quote(harnessName));
 
+            // Totals first, so a script can decide pass/fail without walking the results.
+            builder.Append(",\"passed\":").Append(passed)
+                   .Append(",\"failed\":").Append(failed)
+                   .Append(",\"errors\":").Append(errors)
+                   .Append(",\"skipped\":").Append(skipped)
+                   .Append(",\"ok\":").Append(failed == 0 && errors == 0 ? "true" : "false");
+
             builder.Append(",\"results\":[");
             var first = true;
-            foreach (var r in results)
+            foreach (var r in list)
             {
                 if (!first) builder.Append(',');
                 first = false;
