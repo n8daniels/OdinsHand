@@ -147,6 +147,25 @@ Commands: `profile`, `run`, `deploy`, `audit`. Switches for `run`: `-Only <text>
 
 In game, the harness also adds a `<reportName>.selftest [filter]` console command.
 
+## Cleaning up test characters
+
+Every project's harness creates its own disposable character, so they pile up. `odins.ps1 clean` (`scripts\Clean-TestSaves.ps1`) removes them
+without touching the characters you play:
+
+* It is a **dry run** until you add `-Apply`, and prints what it would move and which characters it is keeping.
+* Names come **only** from `odinshand.json` (`character`) of the projects you give it, plus any you pass with `-Name`. The match is exact. There are no
+  wildcards, so a real character called `TesterDude` is safe from a test character called `Tester`.
+* Both places a character can live are searched: the local `characters_local` folder and Steam cloud (`Steam\userdata\<id>\892970\remote\characters`).
+  A name can exist in both.
+* Files are **moved** to `%LOCALAPPDATA%\OdinsHand\removed-saves\<timestamp>` with a manifest, never deleted. Afterwards it checks every other save is
+  byte-for-byte unchanged. It refuses to run while Valheim is running or if a save was written in the last 15 minutes.
+* Worlds are not handled.
+
+```powershell
+.\scripts\Clean-TestSaves.ps1 -Project C:\mods\ModA, C:\mods\ModB            # dry run
+.\scripts\Clean-TestSaves.ps1 -Project C:\mods\ModA, C:\mods\ModB -Except KeepMe -Apply
+```
+
 ## Safety
 
 Cases spawn things, move the clock and change state, so the harness is strict about where it runs:
