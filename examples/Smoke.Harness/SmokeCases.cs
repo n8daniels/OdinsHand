@@ -23,14 +23,23 @@ namespace Smoke.Harness
         [Case("smoke:virtual-input")]
         public IEnumerator VirtualInputMoves(HarnessContext ctx)
         {
+            // The test character is persistent, so each run resumes where the last one ended - possibly facing a tree or a
+            // rock. Try each direction in turn and pass if synthetic input moves the player in any of them.
             var p = Player.m_localPlayer;
-            var start = p.transform.position;
-            VirtualInput.Active = true;
-            VirtualInput.MoveDir = Vector3.forward;
-            yield return ctx.Seconds(1.5f);
-            VirtualInput.Clear();
-            var moved = Vector3.Distance(start, p.transform.position);
-            ctx.Check("walking forward moves the player", moved > 1f, $"{moved:0.0} m");
+            var best = 0f;
+            var how = "";
+            foreach (var dir in new[] { Vector3.forward, Vector3.back, Vector3.left, Vector3.right })
+            {
+                var start = p.transform.position;
+                VirtualInput.Active = true;
+                VirtualInput.MoveDir = dir;
+                yield return ctx.Seconds(1.5f);
+                VirtualInput.Clear();
+                var moved = Vector3.Distance(start, p.transform.position);
+                if (moved > best) { best = moved; how = dir.ToString(); }
+                if (moved > 1f) break;
+            }
+            ctx.Check("synthetic movement input moves the player", best > 1f, $"{best:0.0} m ({how})");
         }
 
         [AfterEach]
@@ -78,6 +87,36 @@ namespace Smoke.Harness
             if (spawn != null && here != null)
                 ctx.Check("the player is still near where it spawned", Vector3.Distance(spawn.Position, here.Position) < 500f,
                     $"{Vector3.Distance(spawn.Position, here.Position):0} m from the spawn");
+        }
+
+        [Case("smoke:biome-distances")]
+        public void BiomeDistances(HarnessContext ctx)
+        {
+            var spawn = HarnessTelemetry.LastSpawn;
+            ctx.CheckNotNull("the spawn was recorded", spawn);
+            if (spawn == null) return;
+
+            ctx.Check("the spawn lists other biomes", spawn.OtherBiomes.Count > 0, $"{spawn.OtherBiomes.Count} found within {BiomeSearch.MaxMeters:0} m");
+            ctx.Check("the spawn's own biome is not listed", !spawn.OtherBiomes.Exists(b => b.Biome == spawn.Biome), spawn.Biome);
+            ctx.Log("[telemetry] nearest from spawn: " + string.Join(", ", spawn.OtherBiomes.ConvertAll(b => b.ToString()).ToArray()));
+
+            // Every reported point must really be that biome, and must be as far away as it claims.
+            var wg = WorldGenerator.instance;
+            var bad = 0;
+            foreach (var b in spawn.OtherBiomes)
+            {
+                var actual = wg.GetBiome(b.X, b.Z).ToString();
+                var dist = Vector2.Distance(new Vector2(spawn.X, spawn.Z), new Vector2(b.X, b.Z));
+                if (actual != b.Biome || Mathf.Abs(dist - b.Meters) > 1f) { bad++; ctx.Log($"[telemetry] mismatch: {b} -> world says {actual} at {dist:0.0} m"); }
+            }
+            ctx.Check("every reported point is that biome, at the reported distance", bad == 0, bad == 0 ? null : $"{bad} wrong");
+
+            // Cost: it runs a few times per run, so it should be milliseconds, not a hitch you could feel every frame.
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            var again = BiomeSearch.FindNearest(spawn.Position);
+            watch.Stop();
+            ctx.Check("a search is quick enough to run a few times per suite", watch.ElapsedMilliseconds < 500, $"{watch.ElapsedMilliseconds} ms for {again.Count} biome(s)");
+            ctx.Check("searching again gives the same answer", again.Count == spawn.OtherBiomes.Count);
         }
 
         [Case("smoke:screenshot")]

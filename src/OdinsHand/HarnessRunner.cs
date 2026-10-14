@@ -83,7 +83,7 @@ namespace OdinsHand
             _results.Clear();
             Telemetry = new HarnessTelemetry();
             Telemetry.CaptureContext();
-            Telemetry.RunStart = LocationSnapshot.Capture();
+            Telemetry.RunStart = LocationSnapshot.Capture(biomes: true);
 
             var context = new HarnessContext(_results, _log,
                 CaptureScreenshots ? OutputDirectory : null);
@@ -161,7 +161,7 @@ namespace OdinsHand
                     ? null
                     : $"{errors.TotalCount} Unity error(s) in {errors.DistinctCount} distinct place(s) - see the [unity] lines above");
 
-            Telemetry.RunEnd = LocationSnapshot.Capture();
+            Telemetry.RunEnd = LocationSnapshot.Capture(biomes: true);
             IsRunning = false;
             Report(context);
         }

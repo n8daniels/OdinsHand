@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* **Distance to other biomes.** Each spawn, and the start and end of every run, records the nearest point of every other biome: distance in metres, compass bearing and the exact point (for example `BlackForest 504 m NE`). It samples the world generator on rings out to 3,000 m (40 m apart, 32 rays) and bisects to the edge, so it is accurate to a few metres along a ray and can miss a biome thinner than the 11-degree gap between rays; a biome further than 3 km is not listed. About a millisecond per search. `BiomeSearch.FindNearest(position)` is public for cases. Per-case positions do not include it, to keep them cheap.
+* The Smoke example's movement case now tries each direction: the persistent test character can end a run facing an obstacle.
 * **Location telemetry.** Every report now records where things happened: the spawn location of each spawn (position, biome, zone), where the run started and ended, and where each case started and ended and how long it took, plus the character, world, seed, game version and day. It is in `report.json` under `"telemetry"`, in `report.txt`, and in the log. Built for mods with random spawn points: a failure that only happens in one biome is otherwise invisible. `HarnessTelemetry.Spawns` / `LastSpawn` and `LocationSnapshot.Capture()` are public for cases to use.
 * `Kit.WaitForPlayerReady` also waits out `Player.InIntro()` (the valkyrie flight of a new character, which is not `InCutscene`).
 * `Deploy-Dev.ps1` retries a failed build on a single node: Jotunn 2.30 projects race on publicizing the same game DLL.

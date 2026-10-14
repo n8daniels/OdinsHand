@@ -119,6 +119,9 @@ and not lost. This matters most for mods with random spawn points.
 
 * `report.json` has a `"telemetry"` block: `character`, `world`, `seed`, `gameVersion`, `day`; `spawns` (each time the local player spawned: x, y, z,
   biome, zone); `runStart` and `runEnd`; and `cases`, with the start and end position and the seconds each case took.
+* Spawns and the run start/end also carry `nearestBiomes`: for each other biome, the distance in metres, compass bearing and exact point of the
+  nearest sample (`BlackForest 504 m NE`). It looks out to 3,000 m, so a biome further away is not listed, and a biome narrower than
+  the gap between 32 search rays can be missed. `BiomeSearch.FindNearest(position)` does the same for any point.
 * `report.txt` and the log end with the same facts in words, for example `spawn #1: (-4.3, 76.8, 6.6) Meadows, zone 0,0`.
 * In a case: `HarnessTelemetry.LastSpawn` is the most recent spawn and `LocationSnapshot.Capture()` is the player right now, so a case can
   assert things like "the player is still within 500 m of where it spawned".

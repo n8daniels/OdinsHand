@@ -6,6 +6,85 @@ using UnityEngine;
 
 namespace OdinsHand
 {
+    /// <summary>The nearest point found of one biome, relative to a location.</summary>
+    public sealed class BiomeDistance
+    {
+        public string Biome;
+        public float Meters;
+        /// <summary>Compass bearing to it in degrees, clockwise from north (north is +Z in Valheim).</summary>
+        public float Bearing;
+        public float X, Z;
+
+        public string Compass
+        {
+            get
+            {
+                var names = new[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+                var deg = ((Bearing % 360f) + 360f) % 360f;
+                return names[(int)Math.Round(deg / 45f) % 8];
+            }
+        }
+
+        public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1:0} m {2}", Biome, Meters, Compass);
+    }
+
+    /// <summary>Finds the nearest sample of every biome other than the one a location is in.</summary>
+    public static class BiomeSearch
+    {
+        /// <summary>Ring spacing in metres. The answer is accurate to about this far along a ray.</summary>
+        public const float Step = 40f;
+        /// <summary>How far to look. A biome further away than this is simply not reported.</summary>
+        public const float MaxMeters = 3000f;
+        /// <summary>Rays per ring. 32 rays is 11.25 degrees apart, so a thin biome between rays can be missed.</summary>
+        public const int Rays = 32;
+
+        /// <summary>
+        /// Samples the world generator on expanding rings and, for each other biome first seen on a ring, bisects back along
+        /// that ray to the biome's edge. Cheap enough for a few calls per run (a couple of thousand lookups), not per frame.
+        /// Returns an empty list when no world generator is available.
+        /// </summary>
+        public static List<BiomeDistance> FindNearest(Vector3 from, float maxMeters = MaxMeters)
+        {
+            var found = new Dictionary<Heightmap.Biome, BiomeDistance>();
+            var wg = WorldGenerator.instance;
+            if (wg == null) return new List<BiomeDistance>();
+
+            var here = wg.GetBiome(from.x, from.z);
+
+            for (var r = Step; r <= maxMeters; r += Step)
+            {
+                for (var i = 0; i < Rays; i++)
+                {
+                    var angle = i * (2f * Mathf.PI / Rays);
+                    var dx = Mathf.Sin(angle);   // angle 0 is north (+Z), clockwise
+                    var dz = Mathf.Cos(angle);
+                    var biome = wg.GetBiome(from.x + dx * r, from.z + dz * r);
+                    if (biome == here || found.ContainsKey(biome)) continue;
+
+                    // Bisect between the previous ring (assumed not this biome) and this one for the edge.
+                    float lo = r - Step, hi = r;
+                    for (var k = 0; k < 6; k++)
+                    {
+                        var mid = (lo + hi) * 0.5f;
+                        if (wg.GetBiome(from.x + dx * mid, from.z + dz * mid) == biome) hi = mid; else lo = mid;
+                    }
+
+                    found[biome] = new BiomeDistance
+                    {
+                        Biome = biome.ToString(),
+                        Meters = hi,
+                        Bearing = angle * Mathf.Rad2Deg,
+                        X = from.x + dx * hi,
+                        Z = from.z + dz * hi,
+                    };
+                }
+            }
+
+            var list = new List<BiomeDistance>(found.Values);
+            list.Sort((a, b) => a.Meters.CompareTo(b.Meters));
+            return list;
+        }
+    }
     /// <summary>Where the local player was, and what the world looked like there, at one moment.</summary>
     public sealed class LocationSnapshot
     {
@@ -15,10 +94,16 @@ namespace OdinsHand
         public float Fps;
         public double Seconds;   // real seconds since the game started, so snapshots can be ordered and timed
 
+        /// <summary>Nearest sample of each other biome (nearest first). Empty unless captured with biomes.</summary>
+        public List<BiomeDistance> OtherBiomes = new List<BiomeDistance>();
+
         public Vector3 Position => new Vector3(X, Y, Z);
 
-        /// <summary>Captures the local player's position. Returns null when there is no player to locate.</summary>
-        public static LocationSnapshot Capture()
+        /// <summary>
+        /// Captures the local player's position. Returns null when there is no player to locate. With <paramref name="biomes"/> it
+        /// also measures the distance to each other biome (see <see cref="BiomeSearch"/>), which costs a couple of thousand world lookups.
+        /// </summary>
+        public static LocationSnapshot Capture(bool biomes = false)
         {
             try
             {
@@ -27,7 +112,7 @@ namespace OdinsHand
 
                 var p = player.transform.position;
                 var zone = ZoneSystem.GetZone(p);
-                return new LocationSnapshot
+                var snapshot = new LocationSnapshot
                 {
                     X = p.x, Y = p.y, Z = p.z,
                     Biome = Heightmap.FindBiome(p).ToString(),
@@ -35,6 +120,8 @@ namespace OdinsHand
                     Fps = Time.unscaledDeltaTime > 0f ? 1f / Time.unscaledDeltaTime : 0f,
                     Seconds = Time.realtimeSinceStartup,
                 };
+                if (biomes) snapshot.OtherBiomes = BiomeSearch.FindNearest(p);
+                return snapshot;
             }
             catch
             {
@@ -50,7 +137,16 @@ namespace OdinsHand
             b.Append("{\"x\":").Append(F(X)).Append(",\"y\":").Append(F(Y)).Append(",\"z\":").Append(F(Z))
              .Append(",\"biome\":").Append(HarnessReport.Quote(Biome))
              .Append(",\"zoneX\":").Append(ZoneX).Append(",\"zoneY\":").Append(ZoneY)
-             .Append(",\"fps\":").Append(F(Fps)).Append(",\"t\":").Append(F((float)Seconds)).Append('}');
+             .Append(",\"fps\":").Append(F(Fps)).Append(",\"t\":").Append(F((float)Seconds));
+            b.Append(",\"nearestBiomes\":{");
+            for (var i = 0; i < OtherBiomes.Count; i++)
+            {
+                var o = OtherBiomes[i];
+                if (i > 0) b.Append(',');
+                b.Append(HarnessReport.Quote(o.Biome)).Append(":{\"meters\":").Append(F(o.Meters)).Append(",\"bearing\":").Append(F(o.Bearing))
+                 .Append(",\"compass\":").Append(HarnessReport.Quote(o.Compass)).Append(",\"x\":").Append(F(o.X)).Append(",\"z\":").Append(F(o.Z)).Append('}');
+            }
+            b.Append("}}");
         }
 
         private static string F(float v) => float.IsNaN(v) || float.IsInfinity(v) ? "null" : v.ToString("0.###", CultureInfo.InvariantCulture);
@@ -85,7 +181,7 @@ namespace OdinsHand
 
         internal static void RecordSpawn()
         {
-            var s = LocationSnapshot.Capture();
+            var s = LocationSnapshot.Capture(biomes: true);
             if (s != null) SpawnList.Add(s);
         }
 
@@ -111,9 +207,18 @@ namespace OdinsHand
         {
             yield return $"character '{Character}' in world '{World}' (seed {Seed}), game {GameVersion}, day {Day}";
             for (var i = 0; i < SpawnList.Count; i++)
+            {
                 yield return $"spawn #{i + 1}: {SpawnList[i]}";
+                if (SpawnList[i].OtherBiomes.Count > 0)
+                    yield return "  nearest other biomes: " + string.Join(", ", SpawnList[i].OtherBiomes.ConvertAll(b => b.ToString()).ToArray());
+            }
             if (RunStart != null) yield return "run started at: " + RunStart;
-            if (RunEnd != null) yield return "run ended at:   " + RunEnd;
+            if (RunEnd != null)
+            {
+                yield return "run ended at:   " + RunEnd;
+                if (RunEnd.OtherBiomes.Count > 0)
+                    yield return "  nearest other biomes: " + string.Join(", ", RunEnd.OtherBiomes.ConvertAll(b => b.ToString()).ToArray());
+            }
         }
 
         internal void AppendJson(StringBuilder b)
