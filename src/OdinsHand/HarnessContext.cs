@@ -13,7 +13,7 @@ namespace OdinsHand
     /// and report the rest - the whole point is to learn as much as possible from one
     /// session, not to stop at the first surprise.
     /// </summary>
-    public sealed class HarnessContext
+    public sealed partial class HarnessContext
     {
         private readonly List<HarnessResult> _results;
         private readonly Action<string> _log;

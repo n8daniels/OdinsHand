@@ -32,6 +32,13 @@ namespace OdinsHand
 
         public bool IsRunning { get; private set; }
 
+        /// <summary>
+        /// Longest a single case may run before it is abandoned and recorded as an error, in seconds. A case that waits
+        /// forever for something that will never happen would otherwise hold the whole run until the outer timeout.
+        /// 0 disables it.
+        /// </summary>
+        public float CaseTimeoutSeconds { get; set; } = 120f;
+
         public HarnessRunner(string name, Action<string> log)
         {
             _name = string.IsNullOrEmpty(name) ? "harness" : name;
@@ -116,6 +123,7 @@ namespace OdinsHand
                 // paths and so cannot be relied on to reach a trailing statement.
                 try { testCase.Cleanup(context); }
                 catch (Exception e) { context.Error("cleaning up after " + testCase.Name, e); }
+                context.RunCleanups();
             }
 
             errors.Dispose();
@@ -186,8 +194,16 @@ namespace OdinsHand
 
             if (routine == null) yield break;
 
+            var started = UnityEngine.Time.realtimeSinceStartup;
             while (true)
             {
+                if (CaseTimeoutSeconds > 0f && UnityEngine.Time.realtimeSinceStartup - started > CaseTimeoutSeconds)
+                {
+                    context.Error("running the case", new TimeoutException(
+                        $"exceeded {CaseTimeoutSeconds:0}s and was abandoned. Game state then: {GameState.Describe()}"));
+                    yield break;
+                }
+
                 object current;
                 try
                 {

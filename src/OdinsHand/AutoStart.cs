@@ -30,6 +30,13 @@ namespace OdinsHand
         private static readonly System.Reflection.MethodInfo SetServerPassword =
             AccessTools.PropertySetter(typeof(FejdStartup), "ServerPassword");
 
+        // What the GAME will load, as opposed to what the menu highlights. SetSelectedProfile only moves the highlight;
+        // Game.SetProfile is the commit, and only OnCharacterStart calls it. A run that went straight from the character
+        // list to OnWorldStart loaded whichever character a HUMAN last played on this machine - the report was perfectly
+        // accurate about a character nobody had asked for. Read this back to prove which one it is.
+        private static readonly AccessTools.FieldRef<string> ProfileFilenameRef =
+            AccessTools.StaticFieldRefAccess<string>(AccessTools.Field(typeof(Game), "m_profileFilename"));
+
         private static readonly AccessTools.FieldRef<FejdStartup, int> ProfileIndexRef =
             AccessTools.FieldRefAccess<FejdStartup, int>("m_profileIndex");
 
@@ -311,6 +318,47 @@ namespace OdinsHand
                 }
 
                 log($"[autostart] still not connected after 60s (status {ConnectionStatusRef()}).");
+                yield break;
+            }
+
+            // --- commit the character (local worlds) -------------------------
+            // The server path above commits through OnCharacterStart itself. A local world must do the same, or the game
+            // loads the last character a person played instead of the one selected here.
+            try
+            {
+                // Re-read the list and assign it back: OnCharacterStart indexes the menu's own m_profiles, and a stale
+                // list is how a just-created character comes back missing.
+                ProfilesRef(startup) = SaveSystem.GetAllPlayerProfiles();
+                SetSelectedProfile?.Invoke(startup, new object[] { profileFile });
+
+                var list = ProfilesRef(startup);
+                var at = ProfileIndexRef(startup);
+                var chosen = at >= 0 && at < list.Count ? list[at].GetName() : "(none)";
+                log($"[autostart] highlighted character '{chosen}' (index {at}).");
+
+                if (!string.Equals(chosen, characterName, StringComparison.OrdinalIgnoreCase))
+                {
+                    log($"[autostart] the menu highlighted '{chosen}' rather than '{characterName}'; stopping " +
+                        "rather than running against the wrong character.");
+                    yield break;
+                }
+
+                startup.OnCharacterStart();
+            }
+            catch (Exception e)
+            {
+                log($"[autostart] committing the character failed: {e.Message}");
+                yield break;
+            }
+
+            yield return new WaitForSeconds(1f);
+
+            // Read back what the GAME will load, not what the menu shows.
+            var loading = ProfileFilenameRef();
+            log($"[autostart] the game will load profile file '{loading}'.");
+            if (!string.Equals(loading, profileFile, StringComparison.OrdinalIgnoreCase))
+            {
+                log($"[autostart] expected '{profileFile}'; stopping rather than running against the wrong character.");
                 yield break;
             }
 
