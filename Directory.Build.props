@@ -9,7 +9,7 @@
     <ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
     <ManagedDir>$(ValheimDir)\valheim_Data\Managed</ManagedDir>
     <BepInExCoreDir Condition="'$(BepInExCoreDir)' == ''">$(ValheimDir)\BepInEx\core</BepInExCoreDir>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <!-- Without this the compiled DLL records the full path of its .pdb (C:\Users\<you>\...), which would ship in the NuGet package. -->
     <PathMap>$(MSBuildThisFileDirectory)=/_/</PathMap>
   </PropertyGroup>
