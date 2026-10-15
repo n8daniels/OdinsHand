@@ -16,6 +16,8 @@ Launching Valheim with the MyMod dev profile...
 It was extracted from the harness that verified several of the author's Valheim mods (hundreds of in-game checks per mod,
 single-player and against a dedicated server).
 
+**New here?** Start with the step-by-step [Getting started guide](docs/GETTING-STARTED.md).
+
 ## Where it fits
 
 | | Odin's Hand | Agent bridges (e.g. ValAgentBridge) |
