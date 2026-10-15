@@ -81,6 +81,7 @@ Write-Host ""
 # harness cannot hear. Messages a case declared as expected are skipped.
 $logProblems = Get-BepInExLogProblems $log (Get-ExpectedLogMessages (Join-Path $p.ReportDir "report.json"))
 $logErrors = Write-BepInExLogSummary $logProblems $p.ReportDir
+Write-BepInExVersionHint $log $bep
 Write-Host ""
 Write-Host "Report:      $($p.ReportDir)\report.json"
 Write-Host "Screenshots: $($p.ReportDir)"

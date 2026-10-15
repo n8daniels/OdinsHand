@@ -23,7 +23,13 @@ function Get-OdinsConfig([string]$Project) {
 
 
 # BepInEx 5 "core" folder: downloaded once from the official GitHub release and cached under %LOCALAPPDATA%\OdinsHand.
-function Get-BepInExCore([string]$Version = "5.4.23.2") {
+# The BepInEx 5 release the scripts install into dev and server profiles. It must be new enough for the Valheim build in use: 5.4.23.2 (2024)
+# cannot hook Unity's log writer on Valheim 1.0 and prints "Unable to start Unity log writer" (and, on a server console, Mono's alarming
+# "mono runtime and class libraries are out of sync"). 5.4.23.5 is the newest 5.x release.
+function Get-DefaultBepInExVersion { return "5.4.23.5" }
+
+function Get-BepInExCore([string]$Version = "") {
+  if (-not $Version) { $Version = Get-DefaultBepInExVersion }
   $cache = Join-Path $env:LOCALAPPDATA "OdinsHand\bepinex-$Version"
   $core = Join-Path $cache "BepInEx\core"
   if (-not (Test-Path "$core\BepInEx.Preloader.dll")) {

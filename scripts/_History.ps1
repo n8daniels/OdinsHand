@@ -115,3 +115,17 @@ function Write-BepInExLogSummary($Problems, [string]$ReportDir) {
   }
   return $own
 }
+
+# "Unable to start Unity log writer" is not a problem with the mod: it means this profile's BepInEx is too old for this Valheim build. Explain it
+# in plain words, because on a server console it is accompanied by Mono's alarming "runtime and class libraries are out of sync" text.
+function Write-BepInExVersionHint([string]$LogPath, [string]$ProfileBepInExDir) {
+  if (-not $LogPath -or -not (Test-Path $LogPath)) { return }
+  if (-not (Select-String -Path $LogPath -Pattern "Unable to start Unity log writer" -Quiet)) { return }
+  $dll = Join-Path $ProfileBepInExDir "core\BepInEx.dll"
+  $have = if (Test-Path $dll) { (Get-Item $dll).VersionInfo.FileVersion } else { "an unknown version" }
+  Write-Host ""
+  Write-Host "Note: this profile's BepInEx ($have) is too old for this Valheim build: it could not start Unity's log writer." -ForegroundColor Yellow
+  Write-Host "      The mod and the tests are fine. What you lose is Unity's own messages in BepInEx's log, and on a server console Mono prints" -ForegroundColor Yellow
+  Write-Host "      'mono runtime and class libraries are out of sync': that wording is misleading, it is this, not a broken Mono." -ForegroundColor Yellow
+  Write-Host "      Fix: re-run New-DevProfile.ps1 (or New-ServerProfile.ps1 for a server). It refreshes the core to $(Get-DefaultBepInExVersion)." -ForegroundColor Yellow
+}

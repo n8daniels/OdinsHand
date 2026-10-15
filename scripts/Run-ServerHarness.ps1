@@ -47,6 +47,7 @@ finally {
 
 Write-Host ""
 Write-Host "== Server-side log check ==" -ForegroundColor Cyan
+Write-BepInExVersionHint $serverBepLog (Join-Path $s.ProfileDir "BepInEx")
 if (Test-Path $serverBepLog) {
   $serverProblems = @(Get-BepInExLogProblems $serverBepLog | Where-Object { -not $_.FromUnity })
   if ($serverProblems.Count -gt 0) {

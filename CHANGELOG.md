@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+* **The scripts now install BepInEx 5.4.23.5 (was 5.4.23.2).** 5.4.23.2 (May 2024) cannot hook Unity's log writer on Valheim 1.0 and prints `Unable to start Unity log writer`; a server console also shows Mono's misleading "runtime and class libraries are out of sync" text. The mod and tests still worked, but Unity's own messages were missing from BepInEx's log. Existing profiles: re-run `New-DevProfile.ps1` / `New-ServerProfile.ps1`, which refresh the core. A run now explains the message in plain words when it sees it.
+
 ## 0.3.1
 
 * **Errors in BepInEx's log are no longer invisible.** The harness listens to BepInEx's logger while the suite runs and records every error with the case that was running and the plugin that logged it (a `WARN` in the report, `bepInExLog` in `report.json`). `Run-Harness.ps1` also scans the whole `LogOutput.log` afterwards, which catches load-time failures (a plugin that would not load, missing dependencies) that happen before the suite starts. Off by default as a failure: set `failOnLogErrors` (or `-FailOnLogErrors`) to fail the run on them (exit code 3). `ctx.ExpectLogError("text")` declares an error a case provokes on purpose. Previously only errors that went through Unity's log were noticed, so a plugin's `Logger.LogError` could sit in the log while the run passed.
@@ -37,7 +41,7 @@ Distribution release: it can now be adopted by someone other than the author.
 * **Helpers that undo themselves** after the case, even on a throw: `ctx.Protect`, `ctx.Spawn`, `ctx.Watch`, `ctx.OnCleanup`.
 * **Per-case time limit** (`HarnessCase.TimeoutSeconds`, `[Case(TimeoutSeconds = ...)]`, default 300 s). A case that hangs is
   abandoned and the error records what the game was doing at that moment.
-* **`New-DevProfile` downloads BepInEx** (5.4.23.2) when `-CoreSource` is not given.
+* **`New-DevProfile` downloads BepInEx** when `-CoreSource` is not given.
 * **No Jotunn dependency.** The library never used it; `"jotunn"` in `odinshand.json` is now purely opt-in.
 * **A run that executes zero cases now fails** instead of reporting "0 failed". A mistyped filter used to look like success.
 * `Kit.WaitForPlayerReady` waits 3 s before polling for the intro cutscene (the spawn callback fires before it starts).

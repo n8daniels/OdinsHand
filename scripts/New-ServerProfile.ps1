@@ -29,7 +29,7 @@ $s = Get-OdinsServerConfig $p
 if (-not (Test-Path $s.Exe)) {
   throw "No dedicated server at '$($s.Exe)'. Install it with steamcmd (app 896660) into '$($s.Root)\server', or set server.root / VALHEIM_SERVER_ROOT. See the comment at the top of this script."
 }
-if (-not $CoreSource) { $CoreSource = Get-BepInExCore "5.4.23.2" }
+if (-not $CoreSource) { $CoreSource = Get-BepInExCore }
 if (-not (Test-Path "$CoreSource\BepInEx.Preloader.dll")) { throw "No BepInEx core at '$CoreSource' (pass -CoreSource)." }
 
 $bep = Join-Path $s.ProfileDir "BepInEx"

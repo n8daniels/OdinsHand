@@ -8,13 +8,14 @@
   BepInEx 5 is downloaded for you from its official GitHub release and cached under %LOCALAPPDATA%\OdinsHand. To use a copy
   you already have instead, pass -CoreSource <...\BepInEx\core> (the folder containing BepInEx.Preloader.dll).
 
-  Usage:  .\scripts\New-DevProfile.ps1 [-Project <dir>] [-CoreSource <...\BepInEx\core>] [-BepInExVersion 5.4.23.2]
+  Usage:  .\scripts\New-DevProfile.ps1 [-Project <dir>] [-CoreSource <...\BepInEx\core>] [-BepInExVersion 5.4.23.5]
 #>
-param([string]$Project = "", [string]$CoreSource = "", [string]$BepInExVersion = "5.4.23.2")
+param([string]$Project = "", [string]$CoreSource = "", [string]$BepInExVersion = "")
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\_Config.ps1"
 $p = Get-OdinsConfig $Project
 
+if (-not $BepInExVersion) { $BepInExVersion = Get-DefaultBepInExVersion }
 if (-not $CoreSource) { $CoreSource = Get-BepInExCore $BepInExVersion }
 if (-not (Test-Path "$CoreSource\BepInEx.Preloader.dll")) { throw "No BepInEx core at '$CoreSource' (expected BepInEx.Preloader.dll)." }
 
