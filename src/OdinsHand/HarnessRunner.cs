@@ -36,6 +36,13 @@ namespace OdinsHand
         public HarnessTelemetry Telemetry { get; private set; } = new HarnessTelemetry();
 
         /// <summary>
+        /// When true, an unexpected error in BepInEx's log during the run fails it. When false (the default) it is reported as a WARN.
+        /// </summary>
+        public bool FailOnLogErrors { get; set; }
+
+        private BepInExLogWatch _logWatch;
+
+        /// <summary>
         /// Longest a single case may run before it is abandoned and recorded as an error, in seconds. A case that waits
         /// forever for something that will never happen would otherwise hold the whole run until the outer timeout.
         /// 0 disables it.
@@ -96,6 +103,11 @@ namespace OdinsHand
             var errors = new UnityErrorWatch();
             errors.Start();
 
+            // BepInEx's own logger, which UnityErrorWatch cannot hear: a plugin's Logger.LogError goes there.
+            _logWatch = new BepInExLogWatch(() => context.CurrentCase);
+            context.LogWatch = _logWatch;
+            _logWatch.Start();
+
             var selected = 0;
             foreach (var testCase in _cases)
             {
@@ -138,9 +150,11 @@ namespace OdinsHand
                 try { testCase.Cleanup(context); }
                 catch (Exception e) { context.Error("cleaning up after " + testCase.Name, e); }
                 context.RunCleanups();
+                _logWatch.ClearExpectations();
             }
 
             errors.Dispose();
+            _logWatch.Stop();
 
             // A run that executed nothing must not read as a pass. "0 failures" from zero cases is the quietest way for a
             // harness to lie: a filter typo, or cases the plugin never found, look identical to success.
@@ -152,6 +166,22 @@ namespace OdinsHand
                         ? "no cases were registered. With attributes: is [Cases] on a public class in the harness assembly, with [Case] methods taking a HarnessContext?"
                         : $"the filter '{filter}' matched none of the {_cases.Count} registered case(s)");
             }
+
+            context.CurrentCase = "bepinex-log";
+            var unexpected = _logWatch.Problems.FindAll(p => !p.Expected);
+            if (unexpected.Count > 0)
+            {
+                var shown = new System.Text.StringBuilder();
+                for (var i = 0; i < unexpected.Count && i < 3; i++)
+                {
+                    if (i > 0) shown.Append(" | ");
+                    shown.Append('[').Append(unexpected[i].Case).Append("] ").Append(unexpected[i].Source).Append(": ").Append(unexpected[i].Message.Length > 120 ? unexpected[i].Message.Substring(0, 120) + "..." : unexpected[i].Message);
+                }
+                var detail = $"{unexpected.Count} error(s) in BepInEx's log: {shown}" + (unexpected.Count > 3 ? " ..." : "");
+                if (FailOnLogErrors) context.Check("no unexpected errors in BepInEx's log during the run", false, detail);
+                else context.Warn("errors were written to BepInEx's log during the run", detail);
+            }
+            else if (FailOnLogErrors) context.Check("no unexpected errors in BepInEx's log during the run", true);
 
             context.CurrentCase = "engine";
             foreach (var line in errors.Summary) context.Log("[unity] " + line);
@@ -256,6 +286,11 @@ namespace OdinsHand
                 if (!string.IsNullOrEmpty(line.Trim())) _log("[harness] " + line.TrimEnd());
 
             foreach (var line in Telemetry.Describe()) _log("[harness] " + line);
+            if (_logWatch != null)
+            {
+                foreach (var p in _logWatch.Problems) _log($"[harness] bepinex-log {(p.Expected ? "(expected) " : "")}{p.Level} in [{p.Case}] from {p.Source}: {p.Message}");
+                if (_logWatch.WarningCount > 0) _log($"[harness] bepinex-log: {_logWatch.WarningCount} warning(s) were also logged (counted, not listed)");
+            }
 
             _log($"[harness] {passed} passed, {failed} failed, {_results.Count} checks total.");
 
@@ -264,7 +299,7 @@ namespace OdinsHand
                 Directory.CreateDirectory(OutputDirectory);
 
                 var jsonPath = Path.Combine(OutputDirectory, "report.json");
-                File.WriteAllText(jsonPath, HarnessReport.ToJson(_results, _name, context.Screenshots, Telemetry));
+                File.WriteAllText(jsonPath, HarnessReport.ToJson(_results, _name, context.Screenshots, Telemetry, _logWatch));
 
                 var textPath = Path.Combine(OutputDirectory, "report.txt");
                 File.WriteAllText(textPath, table + Environment.NewLine + string.Join(Environment.NewLine, new List<string>(Telemetry.Describe()).ToArray()) + Environment.NewLine);

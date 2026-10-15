@@ -109,8 +109,33 @@ Prefer subclassing? `HarnessCase` and `HarnessRunner.Add(...)` still work; overr
 * Abandons a case that exceeds its time limit and records the game state at that moment.
 * Waits out a death and respawn instead of failing everything after it.
 * **Fails the run if the engine logged errors**, which catches the exception thrown inside somebody's `Awake`.
+* **Reports errors written to BepInEx's log**, which the engine check cannot hear: a plugin's `Logger.LogError(...)` goes to BepInEx, not Unity.
+  See *Errors in BepInEx's log* below.
 * **Fails a run that executed nothing**, so a filter typo cannot look like success.
 * Refuses to run against the wrong character, or an unintended server.
+
+## Errors in BepInEx's log
+
+A green run must not hide an error sitting in `LogOutput.log`, so the harness watches that log in two ways:
+
+* **While the suite runs,** it listens to BepInEx's own logger. Each error or fatal is recorded with the **case that was running** and the plugin that
+  logged it, and shows up as a `WARN` line in the report (and under `bepInExLog` in `report.json`). Warnings are only counted. Unity's own errors are
+  not repeated here; the engine check already counts them.
+* **After the run,** `Run-Harness.ps1` scans the **whole** log. That catches what happens before the suite starts and the harness cannot hear: a plugin that
+  failed to load, missing dependencies, a patch that did not apply. The result is printed, and the full text is saved as `bepinex-log-problems.txt`
+  (it is included in the run history and the bug-report bundle).
+
+By default these are **warnings** and do not fail the run, because a mod may log an error on purpose while a case provokes it. To fail on them, set
+`"failOnLogErrors": true` in `odinshand.json` or pass `-FailOnLogErrors`: an unexpected error then adds a `FAIL` to the report, and the script exits with code 3.
+
+A case that provokes an error on purpose declares it so it does not count:
+
+```csharp
+ctx.ExpectLogError("could not find spawn point");     // errors containing this text, until the case ends
+Logger.LogError("could not find spawn point: boar");   // recorded as expected, not counted
+```
+
+A harmless BepInEx start-up message, `Unable to start Unity log writer`, is ignored.
 
 ## Multiplayer: a dedicated server
 
@@ -158,6 +183,7 @@ and not lost. This matters most for mods with random spawn points.
 | `audit` | DLLs checked by `odins.ps1 audit`. |
 | `jotunn` | Optional version (e.g. `"2.30.2"`): copies `Jotunn.dll` from the NuGet cache into the profile, for mods that need it. |
 | `tests` | Optional unit-test project run before each deploy. |
+| `failOnLogErrors` | `true` makes an unexpected error in BepInEx's log fail the run (exit code 3). Default: report it as a warning. |
 | `keepRuns` | How many past runs to keep as small zips (default 5, max 50). |
 | `character`, `world` | Disposable test save names (defaults `OdinsTester`, `OdinsHandTest`). |
 | `gameDir`, `profileDir` | Optional overrides. |

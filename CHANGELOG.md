@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+* **Errors in BepInEx's log are no longer invisible.** The harness listens to BepInEx's logger while the suite runs and records every error with the case that was running and the plugin that logged it (a `WARN` in the report, `bepInExLog` in `report.json`). `Run-Harness.ps1` also scans the whole `LogOutput.log` afterwards, which catches load-time failures (a plugin that would not load, missing dependencies) that happen before the suite starts. Off by default as a failure: set `failOnLogErrors` (or `-FailOnLogErrors`) to fail the run on them (exit code 3). `ctx.ExpectLogError("text")` declares an error a case provokes on purpose. Previously only errors that went through Unity's log were noticed, so a plugin's `Logger.LogError` could sit in the log while the run passed.
+* New `WARN` outcome (shown, never failing) and a `warnings` total in `report.json`.
+
 ## 0.3.0
 
 * **Dedicated-server runs.** `Run-ServerHarness.ps1` / `odins.ps1 server` starts a local dedicated server (your mod, with server config that can differ from the client's), joins it with the harness, runs the cases, stops the server and scans ITS logs for errors. `New-ServerProfile.ps1` builds the server profile. Configured by a `server` section in `odinshand.json`. Generalised from BubbleBabies' scripts.

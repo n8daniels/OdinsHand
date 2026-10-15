@@ -14,6 +14,24 @@ namespace OdinsHand
     {
         private readonly List<Action> _cleanups = new List<Action>();
 
+        internal BepInExLogWatch LogWatch;
+
+        /// <summary>
+        /// Declares that this case deliberately provokes a BepInEx error containing <paramref name="contains"/>. Matching errors logged
+        /// until the case ends are marked expected and do not count against the run. Without it, an error logged during a case is reported
+        /// (and fails the run when <c>FailOnBepInExErrors</c> is on).
+        /// </summary>
+        public void ExpectLogError(string contains) => LogWatch?.Expect(contains);
+
+        /// <summary>The BepInEx errors recorded so far this run, each with the case it happened in.</summary>
+        public List<LoggedProblem> LogProblems => LogWatch != null ? LogWatch.Problems : new List<LoggedProblem>();
+
+        /// <summary>Records something worth reading that is not a failure.</summary>
+        public void Warn(string what, string detail = null)
+        {
+            _results.Add(new HarnessResult { Case = CurrentCase, What = what, Outcome = HarnessOutcome.Warn, Detail = detail });
+        }
+
         /// <summary>Registers an action to run after the current case, in reverse order, even if the case threw.</summary>
         public void OnCleanup(Action undo)
         {

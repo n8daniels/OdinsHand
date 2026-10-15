@@ -10,6 +10,7 @@
 param([string]$Project = "", [string]$Only = "", [int]$TimeoutMinutes = 25, [switch]$NoDeploy)
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\_Config.ps1"
+. "$PSScriptRoot\_History.ps1"
 $p = Get-OdinsConfig $Project
 $s = Get-OdinsServerConfig $p
 $serverLog = Join-Path $s.ProfileDir "server.log"
@@ -47,9 +48,11 @@ finally {
 Write-Host ""
 Write-Host "== Server-side log check ==" -ForegroundColor Cyan
 if (Test-Path $serverBepLog) {
-  # "Unable to start Unity log writer" is a harmless BepInEx start-up message, not a problem with the mod.
-  $bad = Get-Content $serverBepLog | Select-String "\[Error|Exception" | Where-Object { $_.Line -notmatch "Unable to start Unity log writer" }
-  if ($bad) { Write-Warning "Server BepInEx log has errors:"; $bad | Select-Object -First 15 | ForEach-Object { $_.Line } } else { Write-Host "No errors or exceptions in the server's BepInEx log." -ForegroundColor Green }
+  $serverProblems = @(Get-BepInExLogProblems $serverBepLog | Where-Object { -not $_.FromUnity })
+  if ($serverProblems.Count -gt 0) {
+    Write-Warning "Server BepInEx log has $($serverProblems.Count) problem(s):"
+    $serverProblems | Select-Object -First 15 | ForEach-Object { "   line {0} [{1}] {2}: {3}" -f $_.Line, $_.Level, $_.Source, $_.Message }
+  } else { Write-Host "No errors or load warnings in the server's BepInEx log." -ForegroundColor Green }
 }
 if (Test-Path $serverLog) {
   $ex = Get-Content $serverLog | Select-String "Exception|NullReference" | Select-Object -First 10

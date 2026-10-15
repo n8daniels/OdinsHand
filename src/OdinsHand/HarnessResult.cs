@@ -13,7 +13,10 @@ namespace OdinsHand
         Skip,
 
         /// <summary>Threw unexpectedly.</summary>
-        Error
+        Error,
+
+        /// <summary>Worth reading but not a failure (for example errors in BepInEx's log when failing on them is off).</summary>
+        Warn
     }
 
     public sealed class HarnessResult
@@ -59,15 +62,16 @@ namespace OdinsHand
             return builder.ToString();
         }
 
-        public static string ToJson(IEnumerable<HarnessResult> results, string harnessName, IEnumerable<string> screenshots, HarnessTelemetry telemetry = null)
+        public static string ToJson(IEnumerable<HarnessResult> results, string harnessName, IEnumerable<string> screenshots, HarnessTelemetry telemetry = null, BepInExLogWatch logWatch = null)
         {
             var list = new List<HarnessResult>(results);
-            int passed = 0, failed = 0, errors = 0, skipped = 0;
+            int passed = 0, failed = 0, errors = 0, skipped = 0, warnings = 0;
             foreach (var r in list)
             {
                 if (r.Outcome == HarnessOutcome.Pass) passed++;
                 else if (r.Outcome == HarnessOutcome.Fail) failed++;
                 else if (r.Outcome == HarnessOutcome.Skip) skipped++;
+                else if (r.Outcome == HarnessOutcome.Warn) warnings++;
                 else errors++;
             }
 
@@ -79,6 +83,7 @@ namespace OdinsHand
                    .Append(",\"failed\":").Append(failed)
                    .Append(",\"errors\":").Append(errors)
                    .Append(",\"skipped\":").Append(skipped)
+                   .Append(",\"warnings\":").Append(warnings)
                    .Append(",\"ok\":").Append(failed == 0 && errors == 0 ? "true" : "false");
 
             builder.Append(",\"results\":[");
@@ -111,6 +116,21 @@ namespace OdinsHand
                 builder.Append(",\"telemetry\":");
                 telemetry.AppendJson(builder);
             }
+            if (logWatch != null)
+            {
+                builder.Append(",\"bepInExLog\":{\"warnings\":").Append(logWatch.WarningCount).Append(",\"dropped\":").Append(logWatch.Dropped).Append(",\"errors\":[");
+                var firstProblem = true;
+                foreach (var p in logWatch.Problems)
+                {
+                    if (!firstProblem) builder.Append(',');
+                    firstProblem = false;
+                    builder.Append("{\"case\":").Append(Quote(p.Case)).Append(",\"source\":").Append(Quote(p.Source))
+                           .Append(",\"level\":").Append(Quote(p.Level)).Append(",\"expected\":").Append(p.Expected ? "true" : "false")
+                           .Append(",\"message\":").Append(Quote(p.Message)).Append('}');
+                }
+                builder.Append("]}");
+            }
+
             builder.Append('}');
 
             return builder.ToString();
@@ -123,6 +143,7 @@ namespace OdinsHand
                 case HarnessOutcome.Pass: return "PASS";
                 case HarnessOutcome.Fail: return "FAIL";
                 case HarnessOutcome.Skip: return "SKIP";
+                case HarnessOutcome.Warn: return "WARN";
                 default: return "ERROR";
             }
         }

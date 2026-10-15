@@ -59,6 +59,7 @@ namespace OdinsHand
         public ConfigEntry<string> Server { get; private set; }
         public ConfigEntry<string> ServerPassword { get; private set; }
         public ConfigEntry<bool> QuitWhenDone { get; private set; }
+        public ConfigEntry<bool> FailOnBepInExErrors { get; private set; }
 
         private Harmony _harmony;
         private bool _started;
@@ -74,6 +75,8 @@ namespace OdinsHand
                     "Run the cases the first time a character spawns, then write a report.");
                 OnlyCases = Config.Bind("Harness", "OnlyCases", "",
                     "Run only cases whose name contains this text. Empty = all.");
+                FailOnBepInExErrors = Config.Bind("Harness", "FailOnBepInExErrors", false,
+                    "Fail the run if an unexpected error is written to BepInEx's log while it runs. Off: such errors are reported as WARN lines.");
                 CaptureScreenshots = Config.Bind("Harness", "CaptureScreenshots", true,
                     "Capture screenshots into the report directory.");
                 Character = Config.Bind("AutoStart", "Character", "",
@@ -135,7 +138,7 @@ namespace OdinsHand
                 yield break;
             }
 
-            var runner = new HarnessRunner(ReportName, Logger.LogInfo) { CaptureScreenshots = CaptureScreenshots.Value };
+            var runner = new HarnessRunner(ReportName, Logger.LogInfo) { CaptureScreenshots = CaptureScreenshots.Value, FailOnLogErrors = FailOnBepInExErrors.Value };
             AddCases(runner);
             if (DiscoverCasesAutomatically) runner.AddRange(AttributeCases.Discover(GetType().Assembly));
 

@@ -34,6 +34,7 @@ try {
   Add-Redacted $reportJson "report.json"
   Add-Redacted (Join-Path $p.ReportDir "report.txt") "report.txt"
   Add-Redacted $log "LogOutput.log"
+  Add-Redacted (Join-Path $p.ReportDir "bepinex-log-problems.txt") "bepinex-log-problems.txt"
   Add-Redacted (Join-Path $p.Root "odinshand.json") "odinshand.json"
   Add-Redacted (Join-Path $p.ProfileDir "BepInEx\config\$($p.Cfg.guid).cfg") "harness-config.cfg"
 

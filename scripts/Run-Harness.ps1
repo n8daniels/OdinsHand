@@ -15,11 +15,13 @@ param(
   [int]$TimeoutMinutes = 12,
   [switch]$NoDeploy,
   [switch]$KeepOpen,
+  [switch]$FailOnLogErrors,
   [string]$Server = "",
   [string]$ServerPassword = ""
 )
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\_Config.ps1"
+. "$PSScriptRoot\_History.ps1"
 $p = Get-OdinsConfig $Project
 $bep = Join-Path $p.ProfileDir "BepInEx"
 if (-not (Test-Path $bep)) { throw "No dev profile at $($p.ProfileDir). Run .\scripts\New-DevProfile.ps1 -CoreSource <...> first." }
@@ -31,6 +33,7 @@ if ($running) { throw "Valheim is already running (PID $($running.Id)). Close it
 $character = if ($p.Cfg.character) { $p.Cfg.character } else { "OdinsTester" }
 $world = if ($p.Cfg.world) { $p.Cfg.world } else { "OdinsHandTest" }
 $quit = if ($KeepOpen) { "false" } else { "true" }
+$failOnLog = if ($FailOnLogErrors -or $p.Cfg.failOnLogErrors) { "true" } else { "false" }
 $worldLine = if ($Server) { "World = " } else { "World = $world" }
 $cfg = @"
 [AutoStart]
@@ -44,6 +47,7 @@ QuitWhenDone = $quit
 RunOnSpawn = true
 OnlyCases = $Only
 CaptureScreenshots = true
+FailOnBepInExErrors = $failOnLog
 "@
 Set-Content -Path (Join-Path $bep "config\$($p.Cfg.guid).cfg") -Value $cfg -Encoding UTF8
 
@@ -73,15 +77,20 @@ else {
   $lines | Select-String "autostart|harness|Error|Exception" | Select-Object -Last 40 | ForEach-Object { $_.Line }
 }
 Write-Host ""
+# Everything BepInEx logged as an error during the run, including failures to load that happen before the suite starts, which the
+# harness cannot hear. Messages a case declared as expected are skipped.
+$logProblems = Get-BepInExLogProblems $log (Get-ExpectedLogMessages (Join-Path $p.ReportDir "report.json"))
+$logErrors = Write-BepInExLogSummary $logProblems $p.ReportDir
+Write-Host ""
 Write-Host "Report:      $($p.ReportDir)\report.json"
 Write-Host "Screenshots: $($p.ReportDir)"
 
 # Keep a small history: this run's report and log as one zip, pruned to the newest few ("keepRuns" in odinshand.json, default 5).
 # Never allowed to fail the run.
 try {
-  . "$PSScriptRoot\_History.ps1"
   $keepRuns = if ($p.Cfg.keepRuns) { [math]::Max(1, [math]::Min(50, [int]$p.Cfg.keepRuns)) } else { 5 }
   $saved = Save-RunHistory -Name $p.Name -ReportDir $p.ReportDir -LogPath $log -Keep $keepRuns
   if ($saved) { Write-Host "History:     $saved  (newest $keepRuns kept)" }
 } catch { Write-Warning "Could not save run history: $($_.Exception.Message)" }
 if (-not $done) { Write-Warning "The run did not finish before the timeout / the game exited early."; exit 2 }
+if ($failOnLog -eq "true" -and $logErrors.Count -gt 0) { Write-Warning "$($logErrors.Count) error(s) in the BepInEx log and failOnLogErrors is on."; exit 3 }

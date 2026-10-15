@@ -119,6 +119,28 @@ namespace Smoke.Harness
             ctx.Check("searching again gives the same answer", again.Count == spawn.OtherBiomes.Count);
         }
 
+        [Case("smoke:bepinex-log")]
+        public IEnumerator BepInExLogErrorsAreCaught(HarnessContext ctx)
+        {
+            // A plugin's Logger.LogError goes to BepInEx's log, not Unity's. The harness listens to that logger and ties each error to
+            // the case that was running. A case that provokes one on purpose declares it, so it does not count against the run.
+            var source = BepInEx.Logging.Logger.CreateLogSource("OdinsHandSelfTest");
+            try
+            {
+                ctx.ExpectLogError("deliberate self-test error");
+                source.LogError("deliberate self-test error: this is provoked by the Smoke example on purpose");
+            }
+            finally { BepInEx.Logging.Logger.Sources.Remove(source); }
+            yield return ctx.Frames(1);
+
+            var seen = ctx.LogProblems.Find(p => p.Message.Contains("deliberate self-test error"));
+            ctx.CheckNotNull("a BepInEx logger error was captured", seen);
+            if (seen == null) yield break;
+            ctx.CheckEqual("...and tied to the case that was running", seen.Case, "smoke:bepinex-log");
+            ctx.CheckEqual("...from the plugin that logged it", seen.Source, "OdinsHandSelfTest");
+            ctx.Check("...and counted as expected, so it does not count against the run", seen.Expected);
+        }
+
         [Case("smoke:screenshot")]
         public IEnumerator Screenshot(HarnessContext ctx)
         {
