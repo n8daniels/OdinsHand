@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.3.2
 
+* **New: a step-by-step [Getting started guide](docs/GETTING-STARTED.md)** for putting the harness on a new mod, including how to drive it with an AI coding agent (Claude Code, Codex) and a ready-to-paste `CLAUDE.md` / `AGENTS.md` block.
 * **The scripts now install BepInEx 5.4.23.5 (was 5.4.23.2).** 5.4.23.2 (May 2024) cannot hook Unity's log writer on Valheim 1.0 and prints `Unable to start Unity log writer`; a server console also shows Mono's misleading "runtime and class libraries are out of sync" text. The mod and tests still worked, but Unity's own messages were missing from BepInEx's log. Existing profiles: re-run `New-DevProfile.ps1` / `New-ServerProfile.ps1`, which refresh the core. A run now explains the message in plain words when it sees it.
 
 ## 0.3.1
