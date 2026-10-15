@@ -1,0 +1,67 @@
+name: Publish to NuGet
+
+# Publishes the .nupkg files attached to a GitHub Release to nuget.org, using NuGet Trusted Publishing: no API key is stored anywhere.
+# GitHub gives this job a short-lived identity token, nuget.org checks it against the trusted-publishing policy for
+# n8daniels / OdinsHand / publish-nuget.yml, and hands back a one-hour key.
+#
+# The packages are built and tested LOCALLY (tools/Pack-Release.ps1), because compiling needs Valheim's own assemblies, which cannot be
+# on a hosted runner. So this workflow builds nothing: it only publishes what the release already carries.
+#
+#   .\tools\Pack-Release.ps1
+#   gh release create v0.3.0 artifacts\*.nupkg --notes-file ...      # publishing the release triggers this workflow
+#
+# For a release that already exists: Actions > Publish to NuGet > Run workflow > tag.
+#
+# One-time setup: nuget.org > your name > Trusted Publishing > add a policy (owner n8daniels, repository OdinsHand, workflow file
+# publish-nuget.yml, no environment), and a repository secret NUGET_USER holding your nuget.org profile name (NOT your email).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag whose .nupkg assets to publish (for example v0.3.0)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write          # lets this job request the GitHub identity token that nuget.org verifies
+    steps:
+      - name: Download the packages attached to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}      # via env, never pasted into the script, so a tag name cannot inject commands
+        run: |
+          echo "Publishing the packages attached to $TAG"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.nupkg' --dir pkgs
+          ls -l pkgs
+
+      - name: Check the packages match the release tag
+        env:
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          shopt -s nullglob
+          files=(pkgs/*.nupkg)
+          [ ${#files[@]} -gt 0 ] || { echo "No .nupkg files are attached to $TAG"; exit 1; }
+          want="${TAG#v}"
+          for f in "${files[@]}"; do
+            have=$(unzip -p "$f" '*.nuspec' | grep -oP '(?<=<version>)[^<]+' | head -n1)
+            echo "$f -> version $have"
+            [ "$have" = "$want" ] || { echo "$f is version $have but the release tag says $want. Not publishing."; exit 1; }
+          done
+
+      - name: NuGet login (GitHub identity -> temporary API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to nuget.org
+        run: dotnet nuget push "pkgs/*.nupkg" --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
