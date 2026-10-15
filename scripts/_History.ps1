@@ -90,6 +90,9 @@ function Get-ExpectedLogMessages([string]$ReportJson) {
 
 # Prints the scan result and writes the full text next to the report. Returns the plugin/BepInEx errors (what failOnLogErrors counts).
 function Write-BepInExLogSummary($Problems, [string]$ReportDir) {
+  # A clean scan returns nothing, so this arrives as $null, and a filter piped a bare $null still runs once and counts a phantom entry.
+  # Wrap it in an array and drop nulls first, or a clean log reports "1 error" (and would fail a run that asked to fail on errors).
+  $Problems = @(@($Problems) | Where-Object { $_ })
   $own = @($Problems | Where-Object { $_.Level -ne 'Warning' -and -not $_.FromUnity })
   $load = @($Problems | Where-Object { $_.Level -eq 'Warning' })
   $unity = @($Problems | Where-Object { $_.FromUnity })
